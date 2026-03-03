@@ -152,8 +152,8 @@ async function initAdmin(serviceKey) {
         const pts = parseInt(document.getElementById('task-points').value, 10) || 1;
         const editId = editIdField.value;
 
-        if (!dayNum || dayNum < 1 || dayNum > TOTAL_DAYS) {
-            statusEl.textContent = `Day must be between 1 and ${TOTAL_DAYS}.`;
+        if (!dayNum || dayNum < 1 || (dayNum > TOTAL_DAYS && dayNum !== 100)) {
+            statusEl.textContent = `Day must be between 1 and ${TOTAL_DAYS} (or 100 for testing).`;
             statusEl.style.color = '#e74c3c';
             return;
         }
@@ -265,7 +265,7 @@ async function loadTasks(sb) {
         const dayTasks = byDay[d];
         if (!dayTasks) continue;
 
-        const label = `Day ${d}`;
+        const label = d > TOTAL_DAYS ? `Day ${d} (TEST)` : `Day ${d}`;
         const section = document.createElement('div');
         section.className = 'admin-day-section';
         section.innerHTML = `<h4 class="admin-day-heading">${label} (${dayTasks.length} task${dayTasks.length > 1 ? 's' : ''})</h4>`;
