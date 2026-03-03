@@ -1,0 +1,372 @@
+/* ── Buttons ───────────────────────────────────────────── */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 1.4rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--text-secondary);
+    color: var(--text-secondary);
+}
+.btn-outline:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.btn-gold {
+    background: linear-gradient(135deg, var(--accent-gold), var(--accent-ember));
+    color: #000;
+}
+.btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+.btn-gold:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-full { width: 100%; }
+
+/* ── Cards ─────────────────────────────────────────────── */
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--card-radius);
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+}
+
+.card-center {
+    max-width: 420px;
+    margin: 4rem auto;
+    text-align: center;
+}
+
+.card-wide {
+    max-width: 600px;
+    margin: 2rem auto;
+}
+
+/* ── Day Card (grid) ──────────────────────────────────── */
+
+.day-card {
+    position: relative;
+    aspect-ratio: 1;
+    perspective: 800px;
+    cursor: pointer;
+}
+
+.day-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform var(--transition-flip) ease;
+    transform-style: preserve-3d;
+}
+
+.day-card.revealed .day-card-inner {
+    transform: rotateY(180deg);
+}
+
+.day-card-front,
+.day-card-back {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius);
+    backface-visibility: hidden;
+    overflow: hidden;
+}
+
+/* Front — unrevealed */
+.day-card-front {
+    background: #0d0d14;
+    border: 2px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.day-card-front .question {
+    font-size: 3rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.day-card-front .day-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Back — revealed */
+.day-card-back {
+    transform: rotateY(180deg);
+    background: var(--bg-card);
+    border: 2px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.75rem;
+}
+
+.day-card-back .card-thumb {
+    position: absolute;
+    inset: 0;
+    object-fit: cover;
+    opacity: 0.35;
+    border-radius: var(--card-radius);
+}
+
+.day-card-back .card-info {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    width: 100%;
+}
+
+.day-card-back .card-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.day-card-back .card-pts {
+    font-size: 0.7rem;
+    margin-top: 0.2rem;
+    opacity: 0.8;
+}
+
+/* Current day highlight */
+.day-card.today .day-card-front,
+.day-card.today .day-card-back {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+/* Tier borders on revealed cards */
+.day-card.tier-bronze .day-card-back { border-color: var(--tier-bronze); }
+.day-card.tier-silver .day-card-back { border-color: var(--tier-silver); }
+.day-card.tier-gold   .day-card-back { border-color: var(--tier-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.15); }
+
+/* ── Task Detail (day page) ───────────────────────────── */
+
+.task-detail {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+}
+
+.task-unrevealed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    background: #0a0a0f;
+}
+
+.big-question {
+    font-size: 8rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.8);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.task-revealed {
+    position: relative;
+    padding: 0;
+}
+
+.task-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+}
+
+.task-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 0.5rem;
+}
+
+.task-description {
+    padding: 0 1.5rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.task-meta {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 1rem;
+}
+
+.task-points {
+    font-weight: 700;
+    color: var(--accent-gold);
+}
+
+.task-date {
+    color: var(--text-muted);
+}
+
+.tier-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    z-index: 5;
+}
+
+.tier-badge.bronze { background: var(--tier-bronze); color: #000; }
+.tier-badge.silver { background: var(--tier-silver); color: #000; }
+.tier-badge.gold   { background: var(--tier-gold);   color: #000; }
+
+.submit-section, .login-prompt {
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+}
+
+.login-prompt { color: var(--text-muted); }
+
+/* ── Leaderboard Row ──────────────────────────────────── */
+
+.lb-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--card-radius);
+    padding: 1rem 1.5rem;
+    transition: transform var(--transition-fast);
+}
+.lb-row:hover {
+    transform: translateX(4px);
+}
+
+.lb-rank {
+    font-size: 1.5rem;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+.lb-info {
+    flex: 1;
+}
+
+.lb-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.lb-bar-wrap {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    margin-top: 0.4rem;
+    overflow: hidden;
+}
+
+.lb-bar {
+    height: 100%;
+    border-radius: 3px;
+    width: 0;
+    transition: width 1s ease-out;
+}
+
+.lb-points {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--accent-gold);
+    min-width: 60px;
+    text-align: right;
+}
+
+/* ── Upload Area ──────────────────────────────────────── */
+
+.upload-area {
+    border: 2px dashed var(--border-subtle);
+    border-radius: var(--card-radius);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin: 1.5rem 0;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+    border-color: var(--accent-gold);
+    background: rgba(255, 215, 0, 0.03);
+}
+
+.upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.preview-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.preview-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--border-subtle);
+}
+
+/* ── Alerts ───────────────────────────────────────────── */
+
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.alert-error {
+    background: rgba(231, 76, 60, 0.15);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    color: #e74c3c;
+}
+
+/* ── Utility ──────────────────────────────────────────── */
+
+.text-muted { color: var(--text-muted); }
+.text-center { text-align: center; }
+.text-secondary { color: var(--text-secondary); }

@@ -1,0 +1,64 @@
+/* ── Theme Variables ───────────────────────────────────── */
+:root {
+    --bg-primary:     #0a0a0f;
+    --bg-secondary:   #0e0e16;
+    --bg-card:        #12121a;
+    --bg-card-hover:  #1a1a2a;
+    --bg-input:       #16162a;
+
+    --accent-gold:    #ffd700;
+    --accent-fire:    #ff4500;
+    --accent-ember:   #ff6b35;
+    --accent-blue:    #5865f2;
+
+    --tier-bronze:    #cd7f32;
+    --tier-silver:    #c0c0c0;
+    --tier-gold:      #ffd700;
+
+    --text-primary:   #e8e8e8;
+    --text-secondary: #8892b0;
+    --text-muted:     #5a6380;
+
+    --border-subtle:  rgba(255, 255, 255, 0.06);
+    --border-glow:    rgba(255, 215, 0, 0.3);
+    --card-shadow:    0 4px 20px rgba(0, 0, 0, 0.5);
+    --card-radius:    12px;
+
+    --font-main:      'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono:      'Cascadia Code', 'Fira Code', monospace;
+
+    --transition-fast:  0.15s ease;
+    --transition-med:   0.3s ease;
+    --transition-flip:  0.6s;
+
+    --nav-height: 60px;
+}
+
+/* ── Reset ────────────────────────────────────────────── */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-main);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+a { color: var(--accent-gold); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; display: block; }
+
+::selection {
+    background: var(--accent-gold);
+    color: var(--bg-primary);
+}

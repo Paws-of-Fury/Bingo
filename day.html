@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paws of Fury — Task</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <span class="logo-paw">🐾</span> Paws of Fury Bingo
+        </a>
+        <div class="nav-links">
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <button id="auth-btn" class="btn btn-outline" onclick="window.bingoAuth?.toggleLogin()">Login</button>
+        </div>
+    </nav>
+
+    <main class="container day-container">
+        <!-- Day navigation -->
+        <div class="day-nav">
+            <a id="prev-day" class="day-arrow day-arrow-prev" href="#">&#8592; Previous</a>
+            <h2 id="day-heading" class="day-heading">Day ?</h2>
+            <a id="next-day" class="day-arrow day-arrow-next" href="#">Next &#8594;</a>
+        </div>
+
+        <!-- Task card (large) -->
+        <div id="task-card" class="task-detail">
+            <!-- Unrevealed state -->
+            <div id="task-unrevealed" class="task-unrevealed">
+                <span class="big-question">?</span>
+                <p>This task hasn't been revealed yet.</p>
+            </div>
+
+            <!-- Revealed state (hidden by default) -->
+            <div id="task-revealed" class="task-revealed" style="display:none;">
+                <div id="task-tier-badge" class="tier-badge">Bronze</div>
+                <img id="task-image" class="task-image" src="" alt="Task image">
+                <h3 id="task-title" class="task-title"></h3>
+                <p id="task-description" class="task-description"></p>
+                <div class="task-meta">
+                    <span id="task-points" class="task-points"></span>
+                    <span id="task-date" class="task-date"></span>
+                </div>
+                <div id="submit-section" class="submit-section" style="display:none;">
+                    <a id="submit-link" href="submit.html" class="btn btn-gold">Submit Proof</a>
+                </div>
+                <div id="login-prompt" class="login-prompt" style="display:none;">
+                    <p>Log in to submit proof for this task.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Paws of Fury</p>
+    </footer>
+
+    <script type="module" src="js/day.js"></script>
+</body>
+</html>

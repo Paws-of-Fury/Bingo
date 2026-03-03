@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paws of Fury — Submit Proof</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <span class="logo-paw">🐾</span> Paws of Fury Bingo
+        </a>
+        <div class="nav-links">
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <button id="auth-btn" class="btn btn-outline" onclick="window.bingoAuth?.toggleLogin()">Login</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Not logged in -->
+        <div id="no-auth" class="card card-center">
+            <h2>Login Required</h2>
+            <p>You need to be logged in to submit proof.</p>
+            <button class="btn btn-gold" onclick="window.bingoAuth?.toggleLogin()">Login</button>
+        </div>
+
+        <!-- Logged in — submit form -->
+        <div id="submit-form" class="card card-wide" style="display:none;">
+            <h2 id="submit-heading">Submit Proof</h2>
+            <p id="submit-task-info" class="text-muted"></p>
+
+            <div id="timeslot-error" class="alert alert-error" style="display:none;"></div>
+
+            <div id="upload-area" class="upload-area">
+                <div class="upload-icon">📁</div>
+                <p>Drag & drop your screenshots here</p>
+                <p class="text-muted">or click to browse (max 4 files)</p>
+                <input type="file" id="file-input" multiple accept="image/*" style="display:none;">
+            </div>
+
+            <div id="preview-area" class="preview-area"></div>
+
+            <button id="submit-btn" class="btn btn-gold btn-full" disabled>Submit</button>
+            <p id="submit-status" class="text-muted text-center"></p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Paws of Fury</p>
+    </footer>
+
+    <script type="module" src="js/submit.js"></script>
+</body>
+</html>
