@@ -1,6 +1,6 @@
 /**
  * Admin page — task management.
- * Uses admin passphrase validated via Supabase RLS + SECURITY DEFINER function.
+ * Fetches service_role key from bingo_config after passphrase validation.
  */
 
 import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS } from './config.js';
@@ -8,7 +8,6 @@ import { updateAuthUI } from './auth.js';
 
 const ADMIN_KEY = 'bingo_admin';
 let adminClient = null;
-let adminPass = null;
 
 function getAdminPass() {
     try { return localStorage.getItem(ADMIN_KEY); } catch { return null; }
@@ -21,26 +20,34 @@ function setAdminPass(pass) {
 function clearAdmin() {
     localStorage.removeItem(ADMIN_KEY);
     adminClient = null;
-    adminPass = null;
 }
 
-/** Create a Supabase client with the admin passphrase header. */
-function getAdminClient(pass) {
-    if (adminClient) return adminClient;
-    adminClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-        global: {
-            headers: { 'x-admin-pass': pass },
-        },
-    });
-    return adminClient;
+/** Get a basic anon client for validation calls. */
+function anonClient() {
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 }
 
 /** Validate passphrase via RPC. */
 async function validateAdmin(pass) {
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    const sb = anonClient();
     const { data, error } = await sb.rpc('validate_admin', { pass });
     if (error) { console.error('validate_admin', error); return false; }
     return data === true;
+}
+
+/** Fetch service_role key from bingo_config via SECURITY DEFINER RPC. */
+async function fetchServiceKey(pass) {
+    const sb = anonClient();
+    const { data, error } = await sb.rpc('get_service_key', { pass });
+    if (error) { console.error('get_service_key', error); return null; }
+    return data;
+}
+
+/** Create an admin Supabase client using the service_role key. */
+function getAdminClient(serviceKey) {
+    if (adminClient) return adminClient;
+    adminClient = window.supabase.createClient(SUPABASE_URL, serviceKey);
+    return adminClient;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -58,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (savedPass) {
         const valid = await validateAdmin(savedPass);
         if (valid) {
-            showPanel(savedPass);
+            await showPanel(savedPass);
         } else {
             clearAdmin();
         }
@@ -75,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const valid = await validateAdmin(pass);
         if (valid) {
             setAdminPass(pass);
-            showPanel(pass);
+            await showPanel(pass);
         } else {
             loginError.textContent = 'Invalid admin passphrase.';
             loginError.style.display = '';
@@ -97,17 +104,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         passInput.value = '';
     });
 
-    function showPanel(pass) {
+    async function showPanel(pass) {
         loginSection.style.display = 'none';
         panel.style.display = '';
-        initAdmin(pass);
+
+        // Fetch service key from DB
+        const serviceKey = await fetchServiceKey(pass);
+        if (!serviceKey) {
+            loginError.textContent = 'Failed to fetch service key.';
+            loginError.style.display = '';
+            panel.style.display = 'none';
+            loginSection.style.display = '';
+            return;
+        }
+        initAdmin(serviceKey);
     }
 });
 
 /** Initialise the admin panel. */
-async function initAdmin(pass) {
-    adminPass = pass;
-    const sb = getAdminClient(pass);
+async function initAdmin(serviceKey) {
+    const sb = getAdminClient(serviceKey);
 
     const saveBtn = document.getElementById('task-save-btn');
     const cancelBtn = document.getElementById('task-cancel-btn');
@@ -151,17 +167,20 @@ async function initAdmin(pass) {
         saveBtn.textContent = 'Saving…';
 
         try {
-            const { error } = await sb.rpc('admin_upsert_task', {
-                pass: adminPass,
-                p_day_number: dayNum,
-                p_title: title,
-                p_description: desc,
-                p_image_url: img,
-                p_points: pts,
-                p_id: editId ? parseInt(editId, 10) : null,
-            });
-            if (error) throw error;
-            statusEl.textContent = editId ? 'Task updated!' : 'Task added!';
+            if (editId) {
+                const { error } = await sb
+                    .from('bingo_tasks')
+                    .update({ day_number: dayNum, title, description: desc, image_url: img, points: pts })
+                    .eq('id', parseInt(editId, 10));
+                if (error) throw error;
+                statusEl.textContent = 'Task updated!';
+            } else {
+                const { error } = await sb
+                    .from('bingo_tasks')
+                    .insert({ day_number: dayNum, title, description: desc, image_url: img, points: pts, active: true });
+                if (error) throw error;
+                statusEl.textContent = 'Task added!';
+            }
             statusEl.style.color = '#2ecc71';
             clearForm();
             await loadTasks(sb);
@@ -202,7 +221,6 @@ function populateForm(task) {
     document.getElementById('task-save-btn').textContent = 'Update Task';
     document.getElementById('task-cancel-btn').style.display = '';
     document.getElementById('task-save-status').textContent = '';
-    // Scroll to form
     document.getElementById('task-day').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -238,7 +256,6 @@ async function loadTasks(sb) {
 
     container.innerHTML = '';
 
-    // Build list of days to show (1-15 + any extras like 100)
     const allDays = new Set();
     for (let d = 1; d <= TOTAL_DAYS; d++) allDays.add(d);
     for (const d of Object.keys(byDay)) allDays.add(parseInt(d, 10));
@@ -269,15 +286,13 @@ async function loadTasks(sb) {
             `;
             section.appendChild(row);
 
-            // Edit
             row.querySelector('.admin-edit-btn').addEventListener('click', () => {
                 populateForm(t);
             });
 
-            // Delete
             row.querySelector('.admin-delete-btn').addEventListener('click', async () => {
                 if (!confirm(`Delete "${t.title}"?`)) return;
-                const { error } = await sb.rpc('admin_delete_task', { pass: adminPass, p_task_id: t.id });
+                const { error } = await sb.from('bingo_tasks').delete().eq('id', t.id);
                 if (error) {
                     alert('Delete failed: ' + error.message);
                 } else {
@@ -329,7 +344,6 @@ async function loadSubmissions(sb, filter) {
         const date = new Date(s.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
         const source = s.source === 'website' ? 'Web' : 'Discord';
 
-        // Parse attachments
         const attachments = Array.isArray(s.attachments) ? s.attachments : [];
 
         const row = document.createElement('div');
@@ -383,14 +397,16 @@ async function loadSubmissions(sb, filter) {
 
         container.appendChild(row);
 
-        // Approve handler
         const approveBtn = row.querySelector('.sub-approve-btn');
         if (approveBtn) {
             approveBtn.addEventListener('click', async () => {
                 if (!confirm(`Approve submission from ${teamName}?`)) return;
                 approveBtn.disabled = true;
                 approveBtn.textContent = '…';
-                const { error } = await sb.rpc('admin_review_submission', { pass: adminPass, p_sub_id: s.id, p_status: 'approved' });
+                const { error } = await sb
+                    .from('bingo_submissions')
+                    .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+                    .eq('id', s.id);
                 if (error) {
                     alert('Failed to approve: ' + error.message);
                     approveBtn.disabled = false;
@@ -402,14 +418,16 @@ async function loadSubmissions(sb, filter) {
             });
         }
 
-        // Deny handler
         const denyBtn = row.querySelector('.sub-deny-btn');
         if (denyBtn) {
             denyBtn.addEventListener('click', async () => {
                 if (!confirm(`Deny submission from ${teamName}?`)) return;
                 denyBtn.disabled = true;
                 denyBtn.textContent = '…';
-                const { error } = await sb.rpc('admin_review_submission', { pass: adminPass, p_sub_id: s.id, p_status: 'denied' });
+                const { error } = await sb
+                    .from('bingo_submissions')
+                    .update({ status: 'denied', reviewed_at: new Date().toISOString() })
+                    .eq('id', s.id);
                 if (error) {
                     alert('Failed to deny: ' + error.message);
                     denyBtn.disabled = false;
