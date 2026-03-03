@@ -38,7 +38,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Check if day is unlocked
-    const today = currentDay();
+    const TEST_USER_ID = '145884917627224065';
+    let today = currentDay();
+    if (session?.discord_id === TEST_USER_ID && today < 1) {
+        today = 1;
+    }
     if (dayNum > today || today < 1) {
         document.getElementById('task-unrevealed').style.display = '';
         document.getElementById('tasks-container').style.display = 'none';

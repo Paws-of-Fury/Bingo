@@ -11,7 +11,15 @@ export async function renderDayGrid() {
     const grid = document.getElementById('day-grid');
     if (!grid) return;
 
-    const day = currentDay();
+    let day = currentDay();
+
+    // Test mode: show day 1 for the test user before the event starts
+    const TEST_USER_ID = '145884917627224065';
+    const session0 = getSession();
+    if (session0?.discord_id === TEST_USER_ID && day < 1) {
+        day = 1;
+    }
+
     const tasks = day >= 1 ? await fetchTasks(day) : [];
 
     // Group tasks by day_number
