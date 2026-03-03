@@ -16,13 +16,17 @@ export const TOTAL_DAYS  = 15;
 
 /** Return the current bingo day (1-15), 0 if before start, 16 if after end. */
 export function currentDay() {
+    // Get current UK date parts directly (avoids locale parsing bugs)
     const now = new Date();
-    // Use UK time
-    const ukStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' });
-    const uk = new Date(ukStr);
-    const startLocal = new Date(BINGO_START.toLocaleString('en-GB', { timeZone: 'Europe/London' }));
+    const ukParts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/London',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(now); // "2026-03-27" format (en-CA = YYYY-MM-DD)
+    const [y, m, d] = ukParts.split('-').map(Number);
+    const todayMs = Date.UTC(y, m - 1, d);
+    const startMs = Date.UTC(2026, 2, 27); // March = month 2 (0-indexed)
 
-    const diff = Math.floor((uk - startLocal) / (1000 * 60 * 60 * 24));
+    const diff = Math.floor((todayMs - startMs) / (1000 * 60 * 60 * 24));
     if (diff < 0) return 0;
     return Math.min(diff + 1, TOTAL_DAYS + 1);
 }
