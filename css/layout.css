@@ -32,7 +32,12 @@
 }
 .nav-logo:hover { text-decoration: none; color: var(--accent-gold); }
 
-.logo-paw { font-size: 1.4rem; }
+.logo-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+}
 
 .nav-links {
     display: flex;
