@@ -83,8 +83,19 @@ export async function renderDayGrid() {
         const date = dateForDay(i);
         const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
+        // Build images sorted by points (highest first)
+        const sorted = [...dayTasks].sort((a, b) => b.points - a.points);
+        const imgs = sorted.filter(t => t.image_url).map(t => t.image_url);
+        let imagesHTML = '';
+        if (imgs.length > 0) {
+            imagesHTML = `<div class="card-images card-images-${Math.min(imgs.length, 3)}">`;
+            for (const url of imgs.slice(0, 3)) {
+                imagesHTML += `<img src="${escapeAttr(url)}" alt="" loading="lazy">`;
+            }
+            imagesHTML += '</div>';
+        }
+
         // Build task list for back of card
-        const firstImg = dayTasks.find(t => t.image_url)?.image_url;
         let taskListHTML;
         if (dayTasks.length === 1) {
             const t = dayTasks[0];
@@ -112,7 +123,7 @@ export async function renderDayGrid() {
                 </div>
                 <div class="day-card-back">
                     ${statusHTML}
-                    ${firstImg ? `<img class="card-thumb" src="${escapeAttr(firstImg)}" alt="" loading="lazy">` : ''}
+                    ${imagesHTML}
                     <div class="card-info">
                         ${taskListHTML}
                     </div>

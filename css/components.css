@@ -126,13 +126,31 @@
     padding: 0.75rem;
 }
 
-.day-card-back .card-thumb {
+/* Multi-image grid on card back */
+.card-images {
     position: absolute;
     inset: 0;
-    object-fit: cover;
-    opacity: 0.35;
+    display: grid;
+    gap: 2px;
     border-radius: var(--card-radius);
+    overflow: hidden;
+    opacity: 0.4;
 }
+.card-images img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* 1 image: full card */
+.card-images-1 { grid-template: 1fr / 1fr; }
+/* 2 images: top / bottom */
+.card-images-2 { grid-template-rows: 1fr 1fr; grid-template-columns: 1fr; }
+/* 3 images: top spans full width, bottom two side by side */
+.card-images-3 {
+    grid-template-rows: 3fr 2fr;
+    grid-template-columns: 1fr 1fr;
+}
+.card-images-3 img:first-child { grid-column: 1 / -1; }
 
 .day-card-back .card-info {
     position: relative;
@@ -291,9 +309,11 @@
 }
 
 .task-image {
-    width: 100%;
-    max-height: 400px;
+    width: calc(100% - 2rem);
+    margin: 1rem auto 0;
+    display: block;
     object-fit: cover;
+    border-radius: 8px;
 }
 
 .task-title {
