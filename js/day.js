@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const dayNum = parseInt(params.get('day'), 10);
     const TEST_USER_ID = '145884917627224065';
+    const session = getSession();
     const isTestUser = session?.discord_id === TEST_USER_ID;
     if (!dayNum || dayNum < 1 || (dayNum > TOTAL_DAYS && dayNum !== 100)) {
         window.location.href = 'index.html';
@@ -70,7 +71,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.style.display = '';
 
     // Check submissions if signed in
-    const session = getSession();
     let submissionMap = {};
     if (session?.team_id) {
         const subs = await fetchTeamSubmissions(session.team_id);
