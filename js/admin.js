@@ -297,6 +297,8 @@ async function loadTasks(sb) {
                     alert('Delete failed: ' + error.message);
                 } else {
                     await loadTasks(sb);
+                    const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
+                    await loadSubmissions(sb, activeFilter);
                 }
             });
         }
