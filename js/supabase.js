@@ -26,16 +26,28 @@ export async function fetchTasks(maxDay) {
     return data;
 }
 
-/** Fetch a single task by day number. */
-export async function fetchTaskByDay(dayNum) {
+/** Fetch all tasks for a given day number. */
+export async function fetchTasksByDay(dayNum) {
     const sb = getClient();
     const { data, error } = await sb
         .from('bingo_tasks')
         .select('*')
         .eq('day_number', dayNum)
         .eq('active', true)
+        .order('id');
+    if (error) { console.error('fetchTasksByDay', error); return []; }
+    return data || [];
+}
+
+/** Fetch a single task by ID. */
+export async function fetchTaskById(id) {
+    const sb = getClient();
+    const { data, error } = await sb
+        .from('bingo_tasks')
+        .select('*')
+        .eq('id', id)
         .maybeSingle();
-    if (error) { console.error('fetchTaskByDay', error); return null; }
+    if (error) { console.error('fetchTaskById', error); return null; }
     return data;
 }
 

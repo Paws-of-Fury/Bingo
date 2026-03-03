@@ -3,24 +3,43 @@
  */
 
 import { currentDay, dateForDay, tierInfo, BINGO_START, TOTAL_DAYS } from './config.js';
-import { fetchTasks } from './supabase.js';
+import { fetchTasks, fetchTeamSubmissions } from './supabase.js';
+import { getSession } from './auth.js';
 
-/** Build the 15-card grid. */
+/** Build the 15-card grid (supports multiple tasks per day). */
 export async function renderDayGrid() {
     const grid = document.getElementById('day-grid');
     if (!grid) return;
 
     const day = currentDay();
     const tasks = day >= 1 ? await fetchTasks(day) : [];
-    const taskMap = Object.fromEntries(tasks.map(t => [t.day_number, t]));
+
+    // Group tasks by day_number
+    const dayTasksMap = {};  // day_number → [task, task, …]
+    for (const t of tasks) {
+        if (!dayTasksMap[t.day_number]) dayTasksMap[t.day_number] = [];
+        dayTasksMap[t.day_number].push(t);
+    }
+
+    // If signed in, fetch team submissions to show completion status
+    const session = getSession();
+    let submissionMap = {};  // task_id → status
+    if (session?.team_id) {
+        const subs = await fetchTeamSubmissions(session.team_id);
+        submissionMap = Object.fromEntries(subs.map(s => [s.task_id, s.status]));
+    }
 
     grid.innerHTML = '';
 
     for (let i = 1; i <= TOTAL_DAYS; i++) {
-        const task = taskMap[i];
-        const isRevealed = !!task;
+        const dayTasks = dayTasksMap[i] || [];
+        const isRevealed = dayTasks.length > 0;
         const isToday = (i === day);
-        const tier = task ? tierInfo(task.points) : null;
+
+        // Highest tier among all tasks for this day
+        const totalPts = dayTasks.reduce((sum, t) => sum + t.points, 0);
+        const maxPts = dayTasks.length ? Math.max(...dayTasks.map(t => t.points)) : 0;
+        const tier = maxPts > 0 ? tierInfo(maxPts) : null;
 
         const card = document.createElement('div');
         card.className = 'day-card';
@@ -29,8 +48,47 @@ export async function renderDayGrid() {
         if (isToday) card.classList.add('today');
         if (tier) card.classList.add(`tier-${tier.cls}`);
 
+        // Completion status (only for revealed cards when signed in)
+        let statusHTML = '';
+        if (isRevealed && session?.team_id) {
+            const doneCount = dayTasks.filter(t => submissionMap[t.id] === 'approved').length;
+            const totalCount = dayTasks.length;
+
+            if (doneCount === totalCount) {
+                card.classList.add('completed');
+                statusHTML = `<span class="status-icon">✓</span>`;
+            } else if (doneCount > 0) {
+                card.classList.add('partial');
+                statusHTML = `<span class="status-icon">${doneCount}/${totalCount}</span>`;
+            } else {
+                card.classList.add('incomplete');
+                statusHTML = `<span class="status-icon">✗</span>`;
+            }
+        }
+
         const date = dateForDay(i);
         const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+        // Build task list for back of card
+        const firstImg = dayTasks.find(t => t.image_url)?.image_url;
+        let taskListHTML;
+        if (dayTasks.length === 1) {
+            const t = dayTasks[0];
+            taskListHTML = `
+                <div class="card-title">${escapeHTML(t.title)}</div>
+                <div class="card-pts">${t.points} pts &middot; ${tier.label}</div>
+            `;
+        } else {
+            taskListHTML = `
+                <div class="card-task-count">${dayTasks.length} tasks &middot; ${totalPts} pts</div>
+                <ul class="card-task-list">
+                    ${dayTasks.map(t => {
+                        const done = session?.team_id && submissionMap[t.id] === 'approved';
+                        return `<li class="${done ? 'done' : ''}">${escapeHTML(t.title)}</li>`;
+                    }).join('')}
+                </ul>
+            `;
+        }
 
         card.innerHTML = `
             <div class="day-card-inner">
@@ -39,10 +97,10 @@ export async function renderDayGrid() {
                     <span class="day-label">Day ${i} &middot; ${dateStr}</span>
                 </div>
                 <div class="day-card-back">
-                    ${task?.image_url ? `<img class="card-thumb" src="${escapeAttr(task.image_url)}" alt="" loading="lazy">` : ''}
+                    ${statusHTML}
+                    ${firstImg ? `<img class="card-thumb" src="${escapeAttr(firstImg)}" alt="" loading="lazy">` : ''}
                     <div class="card-info">
-                        <div class="card-title">${task ? escapeHTML(task.title) : ''}</div>
-                        <div class="card-pts">${task ? `${task.points} pts &middot; ${tier.label}` : ''}</div>
+                        ${taskListHTML}
                     </div>
                 </div>
             </div>

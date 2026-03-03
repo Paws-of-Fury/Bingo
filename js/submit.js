@@ -3,7 +3,7 @@
  */
 
 import { updateAuthUI, getSession } from './auth.js';
-import { fetchTaskByDay } from './supabase.js';
+import { fetchTaskById } from './supabase.js';
 import { SUPABASE_URL } from './config.js';
 
 let selectedFiles = [];
@@ -26,12 +26,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Parse params
     const params = new URLSearchParams(window.location.search);
+    const taskId = parseInt(params.get('task'), 10);
     const dayNum = parseInt(params.get('day'), 10);
 
-    if (dayNum) {
-        const task = await fetchTaskByDay(dayNum);
+    if (taskId) {
+        const task = await fetchTaskById(taskId);
         if (task) {
-            document.getElementById('submit-heading').textContent = `Submit: Day ${dayNum} — ${task.title}`;
+            document.getElementById('submit-heading').textContent = `Submit: Day ${dayNum || task.day_number} — ${task.title}`;
             document.getElementById('submit-task-info').textContent =
                 `${task.points} points (${task.points >= 6 ? 'Gold' : task.points >= 3 ? 'Silver' : 'Bronze'})`;
         }

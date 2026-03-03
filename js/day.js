@@ -1,9 +1,10 @@
 /**
  * Day detail page (day.html?day=N).
+ * Renders all tasks for the given day as separate cards.
  */
 
 import { currentDay, dateForDay, tierInfo, TOTAL_DAYS } from './config.js';
-import { fetchTaskByDay } from './supabase.js';
+import { fetchTasksByDay, fetchTeamSubmissions } from './supabase.js';
 import { updateAuthUI, getSession } from './auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -39,53 +40,90 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check if day is unlocked
     const today = currentDay();
     if (dayNum > today || today < 1) {
-        // Not yet revealed
         document.getElementById('task-unrevealed').style.display = '';
-        document.getElementById('task-revealed').style.display = 'none';
+        document.getElementById('tasks-container').style.display = 'none';
         return;
     }
 
-    // Fetch task
-    const task = await fetchTaskByDay(dayNum);
-    if (!task) {
-        // No task set for this day yet
+    // Fetch tasks for this day
+    const tasks = await fetchTasksByDay(dayNum);
+    if (!tasks.length) {
         document.getElementById('task-unrevealed').style.display = '';
-        document.getElementById('task-revealed').style.display = 'none';
+        document.getElementById('tasks-container').style.display = 'none';
         return;
     }
 
-    // Show revealed
+    // Hide unrevealed, show container
     document.getElementById('task-unrevealed').style.display = 'none';
-    document.getElementById('task-revealed').style.display = '';
+    const container = document.getElementById('tasks-container');
+    container.style.display = '';
 
-    const tier = tierInfo(task.points);
-
-    // Tier badge
-    const badge = document.getElementById('task-tier-badge');
-    badge.textContent = tier.label;
-    badge.className = `tier-badge ${tier.cls}`;
-
-    // Image
-    const img = document.getElementById('task-image');
-    if (task.image_url) {
-        img.src = task.image_url;
-        img.alt = task.title;
-    } else {
-        img.style.display = 'none';
+    // Check submissions if signed in
+    const session = getSession();
+    let submissionMap = {};
+    if (session?.team_id) {
+        const subs = await fetchTeamSubmissions(session.team_id);
+        submissionMap = Object.fromEntries(subs.map(s => [s.task_id, s.status]));
     }
 
-    // Text
-    document.getElementById('task-title').textContent = task.title;
-    document.getElementById('task-description').textContent = task.description || '';
-    document.getElementById('task-points').textContent = `${task.points} points (${tier.label})`;
-    document.getElementById('task-date').textContent = dateStr;
+    // Render each task as its own card
+    for (const task of tasks) {
+        const tier = tierInfo(task.points);
+        const subStatus = session?.team_id ? submissionMap[task.id] : null;
+        const isApproved = subStatus === 'approved';
+        const isPending = subStatus === 'pending';
 
-    // Submit section
-    const session = getSession();
-    if (session) {
-        document.getElementById('submit-section').style.display = '';
-        document.getElementById('submit-link').href = `submit.html?task=${task.id}&day=${dayNum}`;
-    } else {
+        const card = document.createElement('div');
+        card.className = 'task-detail task-revealed';
+        if (isApproved) card.classList.add('task-completed');
+        if (isPending) card.classList.add('task-pending');
+
+        let statusBadge = '';
+        if (isApproved) {
+            statusBadge = '<div class="task-status-badge approved">Completed</div>';
+        } else if (isPending) {
+            statusBadge = '<div class="task-status-badge pending">Pending Review</div>';
+        } else if (subStatus === 'denied') {
+            statusBadge = '<div class="task-status-badge denied">Denied</div>';
+        }
+
+        let submitHTML = '';
+        if (session && !isApproved && !isPending) {
+            submitHTML = `
+                <div class="submit-section">
+                    <a href="submit.html?task=${task.id}&day=${dayNum}" class="btn btn-gold">Submit Proof</a>
+                </div>
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="tier-badge ${tier.cls}">${tier.label}</div>
+            ${statusBadge}
+            ${task.image_url ? `<img class="task-image" src="${escapeAttr(task.image_url)}" alt="${escapeAttr(task.title)}">` : ''}
+            <h3 class="task-title">${escapeHTML(task.title)}</h3>
+            <p class="task-description">${escapeHTML(task.description || '')}</p>
+            <div class="task-meta">
+                <span class="task-points">${task.points} points (${tier.label})</span>
+                <span class="task-date">${dateStr}</span>
+            </div>
+            ${submitHTML}
+        `;
+
+        container.appendChild(card);
+    }
+
+    // Show login prompt if not signed in
+    if (!session) {
         document.getElementById('login-prompt').style.display = '';
     }
 });
+
+function escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function escapeAttr(str) {
+    return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}

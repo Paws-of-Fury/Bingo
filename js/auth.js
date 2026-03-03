@@ -43,6 +43,19 @@ export function updateAuthUI() {
         btn.textContent = 'Login';
         btn.classList.remove('logged-in');
     }
+
+    // Show admin link in nav if admin is logged in
+    const isAdmin = !!localStorage.getItem('bingo_admin');
+    const navLinks = document.querySelector('.nav-links');
+    if (navLinks && isAdmin && !document.getElementById('admin-nav-link')) {
+        const link = document.createElement('a');
+        link.href = 'admin.html';
+        link.className = 'nav-link';
+        link.id = 'admin-nav-link';
+        link.textContent = 'Admin';
+        link.style.color = '#ffd700';
+        navLinks.insertBefore(link, navLinks.firstChild);
+    }
 }
 
 /** Toggle login: if logged in → logout, else prompt passphrase. */
