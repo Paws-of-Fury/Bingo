@@ -133,8 +133,8 @@ async function initAdmin(pass) {
         const pts = parseInt(document.getElementById('task-points').value, 10) || 1;
         const editId = editIdField.value;
 
-        if (!dayNum || dayNum < 1 || dayNum > TOTAL_DAYS) {
-            statusEl.textContent = `Day must be between 1 and ${TOTAL_DAYS}.`;
+        if (!dayNum || dayNum < 1 || (dayNum > TOTAL_DAYS && dayNum !== 100)) {
+            statusEl.textContent = `Day must be between 1 and ${TOTAL_DAYS} (or 100 for testing).`;
             statusEl.style.color = '#e74c3c';
             return;
         }
@@ -240,13 +240,20 @@ async function loadTasks(sb) {
 
     container.innerHTML = '';
 
-    for (let d = 1; d <= TOTAL_DAYS; d++) {
+    // Build list of days to show (1-15 + any extras like 100)
+    const allDays = new Set();
+    for (let d = 1; d <= TOTAL_DAYS; d++) allDays.add(d);
+    for (const d of Object.keys(byDay)) allDays.add(parseInt(d, 10));
+    const sortedDays = [...allDays].sort((a, b) => a - b);
+
+    for (const d of sortedDays) {
         const dayTasks = byDay[d];
         if (!dayTasks) continue;
 
+        const label = d > TOTAL_DAYS ? `Day ${d} (TEST)` : `Day ${d}`;
         const section = document.createElement('div');
         section.className = 'admin-day-section';
-        section.innerHTML = `<h4 class="admin-day-heading">Day ${d} (${dayTasks.length} task${dayTasks.length > 1 ? 's' : ''})</h4>`;
+        section.innerHTML = `<h4 class="admin-day-heading">${label} (${dayTasks.length} task${dayTasks.length > 1 ? 's' : ''})</h4>`;
 
         for (const t of dayTasks) {
             const tier = t.points >= 6 ? 'Gold' : t.points >= 3 ? 'Silver' : 'Bronze';
