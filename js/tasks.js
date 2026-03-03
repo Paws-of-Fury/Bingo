@@ -12,15 +12,16 @@ export async function renderDayGrid() {
     if (!grid) return;
 
     let day = currentDay();
-
-    // Test mode: show day 1 for the test user before the event starts
     const TEST_USER_ID = '145884917627224065';
     const session0 = getSession();
-    if (session0?.discord_id === TEST_USER_ID && day < 1) {
+    const isTestUser = session0?.discord_id === TEST_USER_ID;
+
+    // Test mode: show day 1 for the test user before the event starts
+    if (isTestUser && day < 1) {
         day = 1;
     }
 
-    const tasks = day >= 1 ? await fetchTasks(day) : [];
+    const tasks = day >= 1 ? await fetchTasks(isTestUser ? 100 : day) : [];
 
     // Group tasks by day_number
     const dayTasksMap = {};  // day_number → [task, task, …]
@@ -39,7 +40,12 @@ export async function renderDayGrid() {
 
     grid.innerHTML = '';
 
-    for (let i = 1; i <= TOTAL_DAYS; i++) {
+    // Build list of days to render — add day 100 for test user
+    const dayNumbers = [];
+    for (let i = 1; i <= TOTAL_DAYS; i++) dayNumbers.push(i);
+    if (isTestUser && dayTasksMap[100]) dayNumbers.push(100);
+
+    for (const i of dayNumbers) {
         const dayTasks = dayTasksMap[i] || [];
         const isRevealed = dayTasks.length > 0;
         const isToday = (i === day);
