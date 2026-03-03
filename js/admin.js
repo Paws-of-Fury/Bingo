@@ -111,8 +111,18 @@ async function initAdmin(pass) {
     const editIdField = document.getElementById('edit-task-id');
     const statusEl = document.getElementById('task-save-status');
 
-    // Load tasks
+    // Load tasks + submissions
     await loadTasks(sb);
+    await loadSubmissions(sb, 'pending');
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            await loadSubmissions(sb, btn.dataset.filter);
+        });
+    });
 
     // Save task
     saveBtn.addEventListener('click', async () => {
@@ -272,6 +282,145 @@ async function loadTasks(sb) {
         }
 
         container.appendChild(section);
+    }
+}
+
+/** Load and render submissions filtered by status. */
+async function loadSubmissions(sb, filter) {
+    const container = document.getElementById('submissions-list');
+    container.innerHTML = '<p class="text-muted">Loading…</p>';
+
+    let query = sb
+        .from('bingo_submissions')
+        .select('*, bingo_teams(name, colour), bingo_tasks(title, day_number, points)')
+        .order('created_at', { ascending: false });
+
+    if (filter && filter !== 'all') {
+        query = query.eq('status', filter);
+    }
+
+    const { data: subs, error } = await query;
+
+    if (error) {
+        container.innerHTML = '<p style="color:#e74c3c;">Failed to load submissions.</p>';
+        console.error('loadSubmissions', error);
+        return;
+    }
+
+    if (!subs || subs.length === 0) {
+        container.innerHTML = `<p class="text-muted">No ${filter === 'all' ? '' : filter + ' '}submissions.</p>`;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    for (const s of subs) {
+        const teamName = s.bingo_teams?.name || 'Unknown Team';
+        const teamColour = s.bingo_teams?.colour || '#e94560';
+        const taskTitle = s.bingo_tasks?.title || 'Unknown Task';
+        const dayNum = s.bingo_tasks?.day_number || '?';
+        const pts = s.bingo_tasks?.points || 0;
+        const submitter = s.submitted_by_rsn || s.submitted_by_discord_id || 'Unknown';
+        const date = new Date(s.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        const source = s.source === 'website' ? 'Web' : 'Discord';
+
+        // Parse attachments
+        const attachments = Array.isArray(s.attachments) ? s.attachments : [];
+
+        const row = document.createElement('div');
+        row.className = `sub-row sub-${s.status}`;
+
+        let statusBadge = '';
+        if (s.status === 'approved') {
+            statusBadge = '<span class="sub-badge sub-badge-approved">Approved</span>';
+        } else if (s.status === 'denied') {
+            statusBadge = '<span class="sub-badge sub-badge-denied">Denied</span>';
+        } else {
+            statusBadge = '<span class="sub-badge sub-badge-pending">Pending</span>';
+        }
+
+        let imagesHTML = '';
+        if (attachments.length > 0) {
+            imagesHTML = '<div class="sub-images">';
+            for (const att of attachments) {
+                const url = typeof att === 'string' ? att : att.url || att.proxy_url || '';
+                if (url) {
+                    imagesHTML += `<a href="${escapeHTML(url)}" target="_blank" rel="noopener"><img class="sub-thumb" src="${escapeHTML(url)}" alt="proof"></a>`;
+                }
+            }
+            imagesHTML += '</div>';
+        }
+
+        let actionsHTML = '';
+        if (s.status === 'pending') {
+            actionsHTML = `
+                <div class="sub-actions">
+                    <button class="btn btn-outline sub-approve-btn" data-id="${s.id}" style="border-color:#2ecc71;color:#2ecc71;">Approve</button>
+                    <button class="btn btn-outline sub-deny-btn" data-id="${s.id}" style="border-color:#e74c3c;color:#e74c3c;">Deny</button>
+                </div>`;
+        }
+
+        row.innerHTML = `
+            <div class="sub-header">
+                <div class="sub-info">
+                    <span class="sub-team" style="color:${escapeHTML(teamColour)}">${escapeHTML(teamName)}</span>
+                    <span class="sub-task">Day ${dayNum}: ${escapeHTML(taskTitle)} (${pts} pts)</span>
+                </div>
+                ${statusBadge}
+            </div>
+            <div class="sub-meta">
+                <span>By: ${escapeHTML(submitter)}</span>
+                <span>${source} • ${date}</span>
+            </div>
+            ${imagesHTML}
+            ${actionsHTML}
+        `;
+
+        container.appendChild(row);
+
+        // Approve handler
+        const approveBtn = row.querySelector('.sub-approve-btn');
+        if (approveBtn) {
+            approveBtn.addEventListener('click', async () => {
+                if (!confirm(`Approve submission from ${teamName}?`)) return;
+                approveBtn.disabled = true;
+                approveBtn.textContent = '…';
+                const { error } = await sb
+                    .from('bingo_submissions')
+                    .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+                    .eq('id', s.id);
+                if (error) {
+                    alert('Failed to approve: ' + error.message);
+                    approveBtn.disabled = false;
+                    approveBtn.textContent = 'Approve';
+                } else {
+                    const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
+                    await loadSubmissions(sb, activeFilter);
+                }
+            });
+        }
+
+        // Deny handler
+        const denyBtn = row.querySelector('.sub-deny-btn');
+        if (denyBtn) {
+            denyBtn.addEventListener('click', async () => {
+                if (!confirm(`Deny submission from ${teamName}?`)) return;
+                denyBtn.disabled = true;
+                denyBtn.textContent = '…';
+                const { error } = await sb
+                    .from('bingo_submissions')
+                    .update({ status: 'denied', reviewed_at: new Date().toISOString() })
+                    .eq('id', s.id);
+                if (error) {
+                    alert('Failed to deny: ' + error.message);
+                    denyBtn.disabled = false;
+                    denyBtn.textContent = 'Deny';
+                } else {
+                    const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
+                    await loadSubmissions(sb, activeFilter);
+                }
+            });
+        }
     }
 }
 

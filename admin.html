@@ -74,6 +74,20 @@
             <!-- Existing tasks -->
             <h3 style="margin-bottom:1rem;">Existing Tasks</h3>
             <div id="tasks-list"></div>
+
+            <!-- Submissions review -->
+            <div style="margin-top:2.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h3>Submissions</h3>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button id="filter-pending" class="btn btn-outline filter-btn active" data-filter="pending">Pending</button>
+                        <button id="filter-approved" class="btn btn-outline filter-btn" data-filter="approved">Approved</button>
+                        <button id="filter-denied" class="btn btn-outline filter-btn" data-filter="denied">Denied</button>
+                        <button id="filter-all" class="btn btn-outline filter-btn" data-filter="all">All</button>
+                    </div>
+                </div>
+                <div id="submissions-list"></div>
+            </div>
         </div>
     </main>
 
