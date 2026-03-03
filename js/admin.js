@@ -8,6 +8,7 @@ import { updateAuthUI } from './auth.js';
 
 const ADMIN_KEY = 'bingo_admin';
 let adminClient = null;
+let adminPass = null;
 
 function getAdminPass() {
     try { return localStorage.getItem(ADMIN_KEY); } catch { return null; }
@@ -20,6 +21,7 @@ function setAdminPass(pass) {
 function clearAdmin() {
     localStorage.removeItem(ADMIN_KEY);
     adminClient = null;
+    adminPass = null;
 }
 
 /** Create a Supabase client with the admin passphrase header. */
@@ -104,6 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /** Initialise the admin panel. */
 async function initAdmin(pass) {
+    adminPass = pass;
     const sb = getAdminClient(pass);
 
     const saveBtn = document.getElementById('task-save-btn');
@@ -148,22 +151,17 @@ async function initAdmin(pass) {
         saveBtn.textContent = 'Saving…';
 
         try {
-            if (editId) {
-                // Update existing task
-                const { error } = await sb
-                    .from('bingo_tasks')
-                    .update({ day_number: dayNum, title, description: desc, image_url: img, points: pts })
-                    .eq('id', parseInt(editId, 10));
-                if (error) throw error;
-                statusEl.textContent = 'Task updated!';
-            } else {
-                // Insert new task
-                const { error } = await sb
-                    .from('bingo_tasks')
-                    .insert({ day_number: dayNum, title, description: desc, image_url: img, points: pts, active: true });
-                if (error) throw error;
-                statusEl.textContent = 'Task added!';
-            }
+            const { error } = await sb.rpc('admin_upsert_task', {
+                pass: adminPass,
+                p_day_number: dayNum,
+                p_title: title,
+                p_description: desc,
+                p_image_url: img,
+                p_points: pts,
+                p_id: editId ? parseInt(editId, 10) : null,
+            });
+            if (error) throw error;
+            statusEl.textContent = editId ? 'Task updated!' : 'Task added!';
             statusEl.style.color = '#2ecc71';
             clearForm();
             await loadTasks(sb);
@@ -279,7 +277,7 @@ async function loadTasks(sb) {
             // Delete
             row.querySelector('.admin-delete-btn').addEventListener('click', async () => {
                 if (!confirm(`Delete "${t.title}"?`)) return;
-                const { error } = await sb.from('bingo_tasks').delete().eq('id', t.id);
+                const { error } = await sb.rpc('admin_delete_task', { pass: adminPass, p_task_id: t.id });
                 if (error) {
                     alert('Delete failed: ' + error.message);
                 } else {
@@ -392,10 +390,7 @@ async function loadSubmissions(sb, filter) {
                 if (!confirm(`Approve submission from ${teamName}?`)) return;
                 approveBtn.disabled = true;
                 approveBtn.textContent = '…';
-                const { error } = await sb
-                    .from('bingo_submissions')
-                    .update({ status: 'approved', reviewed_at: new Date().toISOString() })
-                    .eq('id', s.id);
+                const { error } = await sb.rpc('admin_review_submission', { pass: adminPass, p_sub_id: s.id, p_status: 'approved' });
                 if (error) {
                     alert('Failed to approve: ' + error.message);
                     approveBtn.disabled = false;
@@ -414,10 +409,7 @@ async function loadSubmissions(sb, filter) {
                 if (!confirm(`Deny submission from ${teamName}?`)) return;
                 denyBtn.disabled = true;
                 denyBtn.textContent = '…';
-                const { error } = await sb
-                    .from('bingo_submissions')
-                    .update({ status: 'denied', reviewed_at: new Date().toISOString() })
-                    .eq('id', s.id);
+                const { error } = await sb.rpc('admin_review_submission', { pass: adminPass, p_sub_id: s.id, p_status: 'denied' });
                 if (error) {
                     alert('Failed to deny: ' + error.message);
                     denyBtn.disabled = false;
