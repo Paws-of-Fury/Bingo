@@ -8,7 +8,7 @@ export const SUPABASE_URL  = 'https://qwxouydsbhhpwnafjayr.supabase.co';
 export const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3eG91eWRzYmhocHduYWZqYXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NzY5ODUsImV4cCI6MjA4ODA1Mjk4NX0.NfrnoVe4hJlAqrndu_3Xkzd5zfSx3QKJusjWH094srw';  // paste the anon key from Supabase → Settings → API
 
 export const DISCORD_CLIENT_ID = '1475460184141725746';
-export const DISCORD_REDIRECT  = window.location.origin + '/clan-bingo/callback.html';
+export const DISCORD_REDIRECT  = window.location.origin + '/Bingo/callback.html';
 
 export const BINGO_START = new Date('2026-03-27T00:00:00+00:00');
 export const BINGO_END   = new Date('2026-04-10T23:59:59+00:00');
