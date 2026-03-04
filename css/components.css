@@ -222,7 +222,6 @@
     justify-content: center;
     font-size: 0.65rem;
     font-weight: 900;
-    transform: rotateY(180deg);
     white-space: nowrap;
 }
 
