@@ -129,10 +129,10 @@
 /* Multi-image grid on card back */
 .card-images {
     position: absolute;
-    inset: 0;
+    inset: 2px;
     display: grid;
     gap: 2px;
-    border-radius: var(--card-radius);
+    border-radius: calc(var(--card-radius) - 2px);
     overflow: hidden;
     opacity: 0.85;
 }
@@ -255,7 +255,7 @@
     list-style: none;
     padding: 0;
     margin: 0;
-    text-align: left;
+    text-align: center;
     width: 100%;
 }
 
@@ -376,7 +376,7 @@
 /* Tasks container (day page — multiple task cards) */
 .tasks-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.5rem;
 }
 
