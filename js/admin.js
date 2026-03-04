@@ -150,6 +150,7 @@ async function initAdmin(serviceKey) {
         const desc = document.getElementById('task-desc').value.trim() || null;
         const img = document.getElementById('task-image').value.trim() || null;
         const pts = parseInt(document.getElementById('task-points').value, 10) || 1;
+        const reqPieces = parseInt(document.getElementById('task-pieces').value, 10) || 1;
         const editId = editIdField.value;
 
         if (!dayNum || dayNum < 1 || (dayNum > TOTAL_DAYS && dayNum !== 100)) {
@@ -170,14 +171,14 @@ async function initAdmin(serviceKey) {
             if (editId) {
                 const { error } = await sb
                     .from('bingo_tasks')
-                    .update({ day_number: dayNum, title, description: desc, image_url: img, points: pts })
+                    .update({ day_number: dayNum, title, description: desc, image_url: img, points: pts, required_pieces: reqPieces })
                     .eq('id', parseInt(editId, 10));
                 if (error) throw error;
                 statusEl.textContent = 'Task updated!';
             } else {
                 const { error } = await sb
                     .from('bingo_tasks')
-                    .insert({ day_number: dayNum, title, description: desc, image_url: img, points: pts, active: true });
+                    .insert({ day_number: dayNum, title, description: desc, image_url: img, points: pts, required_pieces: reqPieces, active: true });
                 if (error) throw error;
                 statusEl.textContent = 'Task added!';
             }
@@ -206,6 +207,7 @@ function clearForm() {
     document.getElementById('task-desc').value = '';
     document.getElementById('task-image').value = '';
     document.getElementById('task-points').value = '1';
+    document.getElementById('task-pieces').value = '1';
     document.getElementById('task-save-btn').textContent = 'Add Task';
     document.getElementById('task-cancel-btn').style.display = 'none';
     document.getElementById('task-save-status').textContent = '';
@@ -218,6 +220,7 @@ function populateForm(task) {
     document.getElementById('task-desc').value = task.description || '';
     document.getElementById('task-image').value = task.image_url || '';
     document.getElementById('task-points').value = task.points;
+    document.getElementById('task-pieces').value = task.required_pieces || 1;
     document.getElementById('task-save-btn').textContent = 'Update Task';
     document.getElementById('task-cancel-btn').style.display = '';
     document.getElementById('task-save-status').textContent = '';
@@ -272,12 +275,14 @@ async function loadTasks(sb) {
 
         for (const t of dayTasks) {
             const tier = t.points >= 6 ? 'Gold' : t.points >= 3 ? 'Silver' : 'Bronze';
+            const reqPcs = t.required_pieces || 1;
+            const pcsLabel = reqPcs > 1 ? ` × ${reqPcs} pieces` : '';
             const row = document.createElement('div');
             row.className = 'admin-task-row';
             row.innerHTML = `
                 <div class="admin-task-info">
                     <span class="admin-task-title">${escapeHTML(t.title)}</span>
-                    <span class="admin-task-pts">${t.points} pts (${tier})</span>
+                    <span class="admin-task-pts">${t.points} pts (${tier})${pcsLabel}</span>
                 </div>
                 <div class="admin-task-actions">
                     <button class="btn btn-outline admin-edit-btn" data-id="${t.id}">Edit</button>
@@ -385,7 +390,7 @@ async function loadSubmissions(sb, filter) {
             <div class="sub-header">
                 <div class="sub-info">
                     <span class="sub-team" style="color:${escapeHTML(teamColour)}">${escapeHTML(teamName)}</span>
-                    <span class="sub-task">Day ${dayNum}: ${escapeHTML(taskTitle)} (${pts} pts)</span>
+                    <span class="sub-task">Day ${dayNum}: ${escapeHTML(taskTitle)} (${pts} pts${s.pieces > 1 ? `, ${s.pieces} pcs` : ''})</span>
                 </div>
                 ${statusBadge}
             </div>

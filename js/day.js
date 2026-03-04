@@ -4,7 +4,7 @@
  */
 
 import { currentDay, dateForDay, tierInfo, TOTAL_DAYS } from './config.js';
-import { fetchTasksByDay, fetchTeamSubmissions } from './supabase.js';
+import { fetchTasksByDay, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
 import { updateAuthUI, getSession } from './auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -60,36 +60,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.style.display = '';
 
     // Check submissions if signed in
-    let submissionMap = {};
+    let taskProgress = {};
     if (session?.team_id) {
         const subs = await fetchTeamSubmissions(session.team_id);
-        submissionMap = Object.fromEntries(subs.map(s => [s.task_id, s.status]));
+        taskProgress = aggregateSubmissions(subs);
     }
 
     // Sort by points (lowest → highest) and render each task
     tasks.sort((a, b) => a.points - b.points);
     for (const task of tasks) {
         const tier = tierInfo(task.points);
-        const subStatus = session?.team_id ? submissionMap[task.id] : null;
-        const isApproved = subStatus === 'approved';
-        const isPending = subStatus === 'pending';
+        const reqPieces = task.required_pieces || 1;
+        const tp = taskProgress[task.id] || { approved_pieces: 0, has_pending: false };
+        const isComplete = tp.approved_pieces >= reqPieces;
+        const isPending = tp.has_pending;
 
         const card = document.createElement('div');
         card.className = 'task-detail task-revealed';
-        if (isApproved) card.classList.add('task-completed');
-        if (isPending) card.classList.add('task-pending');
+        if (isComplete) card.classList.add('task-completed');
+        if (isPending && !isComplete) card.classList.add('task-pending');
 
         let statusBadge = '';
-        if (isApproved) {
+        if (isComplete) {
             statusBadge = '<div class="task-status-badge approved">Completed</div>';
+        } else if (reqPieces > 1 && tp.approved_pieces > 0) {
+            statusBadge = `<div class="task-status-badge pending">${tp.approved_pieces}/${reqPieces} pieces</div>`;
         } else if (isPending) {
             statusBadge = '<div class="task-status-badge pending">Pending Review</div>';
-        } else if (subStatus === 'denied') {
-            statusBadge = '<div class="task-status-badge denied">Denied</div>';
         }
 
         let submitHTML = '';
-        if (session && !isApproved && !isPending) {
+        if (session && !isComplete) {
             submitHTML = `
                 <div class="submit-section">
                     <a href="submit.html?task=${task.id}&day=${dayNum}" class="btn btn-gold">Submit Proof</a>
@@ -104,7 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <h3 class="task-title">${escapeHTML(task.title)}</h3>
             <p class="task-description">${escapeHTML(task.description || '')}</p>
             <div class="task-meta">
-                <span class="task-points">${task.points} points (${tier.label})</span>
+                <span class="task-points">${task.points} points (${tier.label})${reqPieces > 1 ? ` — ${reqPieces} pieces required` : ''}</span>
                 <span class="task-date">${dateStr}</span>
             </div>
             ${submitHTML}

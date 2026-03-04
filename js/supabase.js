@@ -89,8 +89,22 @@ export async function fetchTeamSubmissions(teamId) {
     const sb = getClient();
     const { data, error } = await sb
         .from('bingo_submissions')
-        .select('task_id, status')
+        .select('task_id, status, pieces')
         .eq('team_id', teamId);
     if (error) { console.error('fetchTeamSubmissions', error); return []; }
     return data;
+}
+
+/**
+ * Aggregate submissions into per-task progress.
+ * Returns: { task_id → { approved_pieces: number, has_pending: boolean } }
+ */
+export function aggregateSubmissions(subs) {
+    const progress = {};
+    for (const s of subs) {
+        const tp = progress[s.task_id] ||= { approved_pieces: 0, has_pending: false };
+        if (s.status === 'approved') tp.approved_pieces += (s.pieces || 1);
+        if (s.status === 'pending') tp.has_pending = true;
+    }
+    return progress;
 }

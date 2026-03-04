@@ -3,7 +3,7 @@
  */
 
 import { currentDay, dateForDay, tierInfo, BINGO_START, TOTAL_DAYS } from './config.js';
-import { fetchTasks, fetchTeamSubmissions } from './supabase.js';
+import { fetchTasks, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
 import { getSession } from './auth.js';
 
 /** Build the 15-card grid (supports multiple tasks per day). */
@@ -24,10 +24,10 @@ export async function renderDayGrid() {
 
     // If signed in, fetch team submissions to show completion status
     const session = getSession();
-    let submissionMap = {};  // task_id → status
+    let taskProgress = {};  // task_id → { approved_pieces, has_pending }
     if (session?.team_id) {
         const subs = await fetchTeamSubmissions(session.team_id);
-        submissionMap = Object.fromEntries(subs.map(s => [s.task_id, s.status]));
+        taskProgress = aggregateSubmissions(subs);
     }
 
     grid.innerHTML = '';
@@ -55,7 +55,11 @@ export async function renderDayGrid() {
         // Completion status (only for revealed cards when signed in)
         let statusHTML = '';
         if (isRevealed && session?.team_id) {
-            const doneCount = dayTasks.filter(t => submissionMap[t.id] === 'approved').length;
+            const doneCount = dayTasks.filter(t => {
+                const req = t.required_pieces || 1;
+                const tp = taskProgress[t.id];
+                return tp && tp.approved_pieces >= req;
+            }).length;
             const totalCount = dayTasks.length;
 
             if (doneCount === totalCount) {
@@ -98,7 +102,9 @@ export async function renderDayGrid() {
                 <div class="card-task-count">${dayTasks.length} tasks &middot; ${totalPts} pts</div>
                 <ul class="card-task-list">
                     ${dayTasks.map(t => {
-                        const done = session?.team_id && submissionMap[t.id] === 'approved';
+                        const req = t.required_pieces || 1;
+                        const tp = taskProgress[t.id];
+                        const done = session?.team_id && tp && tp.approved_pieces >= req;
                         return `<li class="${done ? 'done' : ''}">${escapeHTML(t.title)}</li>`;
                     }).join('')}
                 </ul>

@@ -3,7 +3,7 @@
  */
 
 import { updateAuthUI, getSession } from './auth.js';
-import { fetchTaskById } from './supabase.js';
+import { fetchTaskById, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
 import { SUPABASE_URL } from './config.js';
 
 let selectedFiles = [];
@@ -29,12 +29,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const taskId = parseInt(params.get('task'), 10);
     const dayNum = parseInt(params.get('day'), 10);
 
+    let reqPieces = 1;
     if (taskId) {
         const task = await fetchTaskById(taskId);
         if (task) {
+            reqPieces = task.required_pieces || 1;
             document.getElementById('submit-heading').textContent = `Submit: Day ${dayNum || task.day_number} — ${task.title}`;
-            document.getElementById('submit-task-info').textContent =
-                `${task.points} points (${task.points >= 6 ? 'Gold' : task.points >= 3 ? 'Silver' : 'Bronze'})`;
+            let infoText = `${task.points} points (${task.points >= 6 ? 'Gold' : task.points >= 3 ? 'Silver' : 'Bronze'})`;
+            if (reqPieces > 1) infoText += ` — ${reqPieces} pieces required`;
+            document.getElementById('submit-task-info').textContent = infoText;
+
+            // Show pieces input for multi-piece tasks
+            if (reqPieces > 1 && session?.team_id) {
+                const subs = await fetchTeamSubmissions(session.team_id);
+                const progress = aggregateSubmissions(subs);
+                const tp = progress[taskId] || { approved_pieces: 0 };
+                const remaining = Math.max(1, reqPieces - tp.approved_pieces);
+
+                const piecesRow = document.getElementById('pieces-row');
+                const piecesInput = document.getElementById('pieces-input');
+                const piecesLabel = document.getElementById('pieces-label');
+                piecesLabel.textContent = `How many pieces in this submission? (${tp.approved_pieces}/${reqPieces} approved so far)`;
+                piecesInput.max = remaining;
+                piecesInput.value = '1';
+                piecesRow.style.display = '';
+            }
         }
     }
 
@@ -124,6 +143,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const taskId = parseInt(params.get('task'), 10) || null;
 
+            const pieces = reqPieces > 1
+                ? parseInt(document.getElementById('pieces-input').value, 10) || 1
+                : 1;
+
             const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-proof`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -133,6 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     discord_id: session.discord_id,
                     rsn: session.rsn,
                     attachments,
+                    pieces,
                 }),
             });
 
