@@ -90,7 +90,7 @@ export async function renderDayGrid() {
         if (imgs.length > 0) {
             imagesHTML = `<div class="card-images card-images-${Math.min(imgs.length, 3)}">`;
             for (const url of imgs.slice(0, 3)) {
-                imagesHTML += `<img src="${escapeAttr(url)}" alt="" loading="lazy">`;
+                imagesHTML += `<img src="${escapeAttr(url)}" alt="">`;
             }
             imagesHTML += '</div>';
         }

@@ -140,6 +140,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    min-height: 0;
+    min-width: 0;
 }
 /* 1 image: full card */
 .card-images-1 { grid-template: 1fr / 1fr; }
