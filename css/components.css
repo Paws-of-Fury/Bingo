@@ -149,7 +149,7 @@
 .card-images-2 { grid-template-rows: 1fr 1fr; grid-template-columns: 1fr; }
 /* 3 images: top spans full width, bottom two side by side */
 .card-images-3 {
-    grid-template-rows: 3fr 2fr;
+    grid-template-rows: 1fr 1fr;
     grid-template-columns: 1fr 1fr;
 }
 .card-images-3 img:first-child { grid-column: 1 / -1; }
