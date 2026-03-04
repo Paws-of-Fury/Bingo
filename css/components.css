@@ -291,6 +291,9 @@
     border-radius: var(--card-radius);
     overflow: hidden;
     box-shadow: var(--card-shadow);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .task-unrevealed {
@@ -312,6 +315,9 @@
 .task-revealed {
     position: relative;
     padding: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .task-image {
@@ -334,6 +340,7 @@
     color: var(--text-secondary);
     font-size: 0.85rem;
     line-height: 1.5;
+    flex: 1;
 }
 
 .task-meta {
