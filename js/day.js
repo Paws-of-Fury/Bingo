@@ -12,14 +12,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const params = new URLSearchParams(window.location.search);
     const dayNum = parseInt(params.get('day'), 10);
-    const TEST_USER_ID = '145884917627224065';
     const session = getSession();
-    const isTestUser = session?.discord_id === TEST_USER_ID;
-    if (!dayNum || dayNum < 1 || (dayNum > TOTAL_DAYS && dayNum !== 100)) {
-        window.location.href = 'index.html';
-        return;
-    }
-    if (dayNum === 100 && !isTestUser) {
+    if (!dayNum || dayNum < 1 || dayNum > TOTAL_DAYS) {
         window.location.href = 'index.html';
         return;
     }
@@ -45,13 +39,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Check if day is unlocked
-    let today = currentDay();
-    if (isTestUser && today < 1) {
-        today = 1;
-    }
-    if (dayNum === 100 && isTestUser) {
-        // Always allow test day
-    } else if (dayNum > today || today < 1) {
+    const today = currentDay();
+    if (dayNum > today || today < 1) {
         document.getElementById('task-unrevealed').style.display = '';
         document.getElementById('tasks-container').style.display = 'none';
         return;
