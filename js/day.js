@@ -77,7 +77,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         submissionMap = Object.fromEntries(subs.map(s => [s.task_id, s.status]));
     }
 
-    // Render each task as its own card
+    // Sort by points (lowest → highest) and render each task
+    tasks.sort((a, b) => a.points - b.points);
     for (const task of tasks) {
         const tier = tierInfo(task.points);
         const subStatus = session?.team_id ? submissionMap[task.id] : null;
