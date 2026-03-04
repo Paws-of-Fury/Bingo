@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How It Works — Paws of Fury Bingo</title>
+    <link rel="icon" href="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=32">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <img class="logo-icon" src="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=128" alt=""> Paws of Fury Bingo
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Tasks</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="https://discord.gg/paws-of-fury" target="_blank" rel="noopener" class="nav-link">Discord</a>
+            <button id="auth-btn" class="btn btn-outline" onclick="window.bingoAuth?.toggleLogin()">Login</button>
+        </div>
+    </nav>
+
+    <main class="container info-container">
+        <h1 class="page-title">How It Works</h1>
+
+        <section class="info-section">
+            <h2>What is Clan Bingo?</h2>
+            <p>A 15-day team competition running <strong>March 27 &ndash; April 10</strong>. Each day, a new task is revealed. Your team completes the task, submits proof, and earns points. The team with the most points at the end wins!</p>
+            <p>This bingo is open to everyone so feel free to invite your friends!</p>
+            <p>You will have a 4 hour window that your team decides and you can only submit during that window.</p>
+        </section>
+
+        <section class="info-section">
+            <h2>Buy Ins</h2>
+            <ul>
+                <li>Clan members: <strong>10M</strong></li>
+                <li>Non clan members: <strong>50M</strong></li>
+            </ul>
+            <p>Contact <strong>@Saltea</strong> or <strong>@Vitalis Owner Vla</strong> to buy in.</p>
+        </section>
+
+        <section class="info-section">
+            <h2>Tasks</h2>
+            <p>A new task is revealed every day. Times may vary based on availability.</p>
+            <p>Tasks have different point values based on difficulty:</p>
+            <div class="tier-list">
+                <div class="tier-item tier-bronze-bg">
+                    <span class="tier-label-badge">Bronze</span>
+                    <span>1&ndash;2 points (easier tasks)</span>
+                </div>
+                <div class="tier-item tier-silver-bg">
+                    <span class="tier-label-badge">Silver</span>
+                    <span>3&ndash;5 points (medium tasks)</span>
+                </div>
+                <div class="tier-item tier-gold-bg">
+                    <span class="tier-label-badge">Gold</span>
+                    <span>6+ points (harder tasks)</span>
+                </div>
+            </div>
+            <p>You can catch up on missed days &mdash; submit for any past task your team hasn't done yet.</p>
+        </section>
+
+        <section class="info-section">
+            <h2>How to Submit</h2>
+            <p>Your team has a daily submission window (your team captain will tell you your time slot). You can only submit during your window.</p>
+
+            <h3>On Discord</h3>
+            <ol>
+                <li>Use <code>/submit</code> in the Discord server</li>
+                <li>Pick which task you're submitting for from the dropdown</li>
+                <li>Attach up to 4 screenshots as proof</li>
+                <li>An admin will review and approve or deny your submission</li>
+                <li>If approved, your team gets the points!</li>
+            </ol>
+
+            <h3>On the Website</h3>
+            <ol>
+                <li>Click <strong>Login</strong> and enter your team's passphrase</li>
+                <li>Click on a day's task and hit <strong>Submit Proof</strong></li>
+                <li>Upload your screenshots and submit</li>
+            </ol>
+        </section>
+
+        <section class="info-section">
+            <h2>Rules</h2>
+            <ul>
+                <li>Each team can only submit <strong>once per task</strong> &mdash; make it count!</li>
+                <li>You must submit during your team's time slot</li>
+                <li>Submissions need to be approved by an admin before points count</li>
+                <li>All team members can submit on behalf of the team</li>
+            </ul>
+        </section>
+
+        <section class="info-section">
+            <h2>Leaderboard</h2>
+            <ul>
+                <li>Use <code>/bleaderboard</code> on Discord to see team standings</li>
+                <li>The <a href="leaderboard.html">website leaderboard</a> also shows live standings</li>
+            </ul>
+        </section>
+
+        <section class="info-section">
+            <h2>Website</h2>
+            <p>Check the bingo website to:</p>
+            <ul>
+                <li>See all revealed tasks on the day grid</li>
+                <li>View task details and point values</li>
+                <li>Check the leaderboard</li>
+                <li>Submit proof (when logged in)</li>
+            </ul>
+        </section>
+
+        <section class="info-section">
+            <h2>How Teams Work</h2>
+            <p>Teams are based on region and/or friendship. We also try to balance based on skill level.</p>
+            <p>You can request up to <strong>one person</strong> to be on the same team. Use <code>/brequest theirname</code> in Discord. You must both request each other.</p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Paws of Fury</p>
+    </footer>
+
+    <script type="module">
+        import { updateAuthUI } from './js/auth.js';
+        updateAuthUI();
+    </script>
+</body>
+</html>
