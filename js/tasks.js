@@ -150,9 +150,14 @@ export function startCountdown() {
             target = BINGO_START;
             label = 'Event starts in';
         } else if (day <= TOTAL_DAYS) {
-            // Next day reveal (midnight UK)
-            const tomorrow = dateForDay(day + 1);
-            target = tomorrow;
+            // Next day reveal at 04:00 UK time (accounts for GMT/BST offset)
+            const tomorrow = dateForDay(day + 1); // midnight UTC
+            const ukHourAtMidnightUTC = parseInt(
+                new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Europe/London', hour: 'numeric', hour12: false, hourCycle: 'h23',
+                }).formatToParts(tomorrow).find(p => p.type === 'hour').value, 10
+            ); // 0 in GMT, 1 in BST
+            target = new Date(tomorrow.getTime() + (4 - ukHourAtMidnightUTC) * 3600000);
             label = 'Next task in';
         } else {
             el.innerHTML = '<p class="text-secondary">Event complete!</p>';
