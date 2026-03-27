@@ -180,9 +180,13 @@ function isWithinTimeslot(session) {
     if (!session.timeslot_start) return true;
 
     const now = new Date();
-    const ukStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' });
-    const uk = new Date(ukStr);
-    const nowMinutes = uk.getHours() * 60 + uk.getMinutes();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/London', hour: 'numeric', minute: 'numeric',
+        hour12: false, hourCycle: 'h23',
+    }).formatToParts(now);
+    const ukH = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    const ukM = parseInt(parts.find(p => p.type === 'minute').value, 10);
+    const nowMinutes = ukH * 60 + ukM;
 
     const [startH, startM] = session.timeslot_start.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
