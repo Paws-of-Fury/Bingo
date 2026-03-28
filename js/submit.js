@@ -4,7 +4,7 @@
 
 import { updateAuthUI, getSession } from './auth.js';
 import { fetchTaskById, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
-import { SUPABASE_URL } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
 
 let selectedFiles = [];
 
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-proof`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}` },
                 body: JSON.stringify({
                     team_id: session.team_id,
                     task_id: taskId,
