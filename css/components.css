@@ -476,6 +476,17 @@
     color: var(--text-primary);
 }
 
+.lb-member-clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(255,255,255,0.25);
+}
+.lb-member-clickable:hover {
+    color: var(--accent-gold);
+    text-decoration-color: var(--accent-gold);
+}
+
 .lb-member-stats {
     display: flex;
     gap: 1rem;

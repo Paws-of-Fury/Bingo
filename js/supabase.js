@@ -100,7 +100,7 @@ export async function fetchTeamDetails(teamIdOrName) {
     return members.map(m => {
         const key = m.discord_id;
         const agg = byDiscord[key] || { count: 0, points: 0 };
-        return { rsn: m.rsn, approved_count: agg.count, personal_points: Math.round(agg.points * 10) / 10 };
+        return { rsn: m.rsn, discord_id: m.discord_id, approved_count: agg.count, personal_points: Math.round(agg.points * 10) / 10 };
     }).sort((a, b) => b.personal_points - a.personal_points);
 }
 
@@ -122,6 +122,27 @@ export async function fetchTeamTimeslots() {
     const map = {};
     for (const t of (data || [])) map[t.name] = t;
     return map;
+}
+
+/** Fetch all approved submissions for a specific team member. */
+export async function fetchMemberSubmissions(teamId, discordId, rsn) {
+    const sb = getClient();
+    let query = sb
+        .from('bingo_submissions')
+        .select('piece_label, attachments, created_at, bingo_tasks(title, day_number, points)')
+        .eq('team_id', teamId)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+    if (discordId) {
+        query = query.eq('submitted_by_discord_id', discordId);
+    } else {
+        query = query.eq('submitted_by_rsn', rsn);
+    }
+
+    const { data, error } = await query;
+    if (error) { console.error('fetchMemberSubmissions', error); return []; }
+    return data || [];
 }
 
 /** Fetch a team by passphrase (for login). */
