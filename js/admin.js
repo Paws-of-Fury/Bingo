@@ -241,6 +241,22 @@ function populateForm(task) {
     document.getElementById('task-day').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+async function loadAddSubmMembers(sb, teamSel, submSel) {
+    submSel.innerHTML = '<option value="">Loading…</option>';
+    if (!teamSel.value) {
+        submSel.innerHTML = '<option value="">Select a team first</option>';
+        return;
+    }
+    const { data: members } = await sb
+        .from('bingo_team_members')
+        .select('rsn, discord_id')
+        .eq('team_id', teamSel.value)
+        .order('rsn');
+    submSel.innerHTML = (members || []).map(m =>
+        `<option value="${escapeHTML(m.discord_id || '')}|${escapeHTML(m.rsn)}">${escapeHTML(m.rsn)}</option>`
+    ).join('') || '<option value="">No members found</option>';
+}
+
 /** Wire up the manual add-submission form. */
 function initAddSubmissionForm(sb) {
     const toggleBtn = document.getElementById('add-sub-toggle-btn');
@@ -260,15 +276,21 @@ function initAddSubmissionForm(sb) {
         }
     };
 
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', async () => {
         const open = form.style.display !== 'none';
         form.style.display = open ? 'none' : '';
         if (!open) {
             copyOptions(document.getElementById('filter-team'), teamSel);
             copyOptions(document.getElementById('filter-task'), taskSel);
-            submSel.innerHTML = '<option value="">Select a team first</option>';
             renderAddItems([]);
+            renderAddUrls([]);
             msgEl.textContent = '';
+            // Auto-load members for whichever team is selected by default
+            if (teamSel.value) {
+                await loadAddSubmMembers(sb, teamSel, submSel);
+            } else {
+                submSel.innerHTML = '<option value="">Select a team first</option>';
+            }
         }
     });
 
@@ -277,21 +299,7 @@ function initAddSubmissionForm(sb) {
     });
 
     // When team changes, load its members into the submitter dropdown
-    teamSel.addEventListener('change', async () => {
-        submSel.innerHTML = '<option value="">Loading…</option>';
-        if (!teamSel.value) {
-            submSel.innerHTML = '<option value="">Select a team first</option>';
-            return;
-        }
-        const { data: members } = await sb
-            .from('bingo_team_members')
-            .select('rsn, discord_id')
-            .eq('team_id', teamSel.value)
-            .order('rsn');
-        submSel.innerHTML = (members || []).map(m =>
-            `<option value="${escapeHTML(m.discord_id || '')}|${escapeHTML(m.rsn)}">${escapeHTML(m.rsn)}</option>`
-        ).join('') || '<option value="">No members found</option>';
-    });
+    teamSel.addEventListener('change', () => loadAddSubmMembers(sb, teamSel, submSel));
 
     function renderAddItems(items) {
         itemsList.innerHTML = '';
@@ -311,6 +319,25 @@ function initAddSubmissionForm(sb) {
 
     document.getElementById('add-sub-add-item-btn').addEventListener('click', () => addItemRow());
 
+    const urlsList = document.getElementById('add-sub-urls-list');
+    function renderAddUrls(urls) {
+        urlsList.innerHTML = '';
+        (urls.length ? urls : []).forEach(val => addUrlRow(val));
+    }
+
+    function addUrlRow(val = '') {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        wrap.innerHTML = `
+            <input type="text" class="form-input add-sub-url-input" style="padding:5px 8px;font-size:13px;flex:1;" placeholder="https://..." value="${escapeHTML(val)}">
+            <button class="btn btn-outline" style="padding:4px 8px;font-size:12px;border-color:#e74c3c;color:#e74c3c;" title="Remove">✕</button>
+        `;
+        wrap.querySelector('button').addEventListener('click', () => wrap.remove());
+        urlsList.appendChild(wrap);
+    }
+
+    document.getElementById('add-sub-add-url-btn').addEventListener('click', () => addUrlRow());
+
     document.getElementById('add-sub-save-btn').addEventListener('click', async () => {
         const teamId = teamSel.value;
         const taskId = taskSel.value;
@@ -329,6 +356,9 @@ function initAddSubmissionForm(sb) {
             .map(i => i.value.trim()).filter(Boolean);
         const pieceLabel = labels.length ? labels.join(', ') : null;
 
+        const imageUrls = [...document.querySelectorAll('.add-sub-url-input')]
+            .map(i => i.value.trim()).filter(Boolean);
+
         const saveBtn = document.getElementById('add-sub-save-btn');
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving…';
@@ -342,7 +372,7 @@ function initAddSubmissionForm(sb) {
             piece_label: pieceLabel,
             pieces: labels.length || 1,
             source: 'admin',
-            attachments: [],
+            attachments: imageUrls,
         });
 
         saveBtn.disabled = false;
