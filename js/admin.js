@@ -132,15 +132,26 @@ async function initAdmin(serviceKey) {
 
     // Load tasks + submissions
     await loadTasks(sb);
+    await populateSubmissionFilters(sb);
     await loadSubmissions(sb, 'pending');
 
-    // Filter buttons
+    // Status filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             await loadSubmissions(sb, btn.dataset.filter);
         });
+    });
+
+    // Team / task dropdowns
+    document.getElementById('filter-team').addEventListener('change', async () => {
+        const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
+        await loadSubmissions(sb, activeFilter);
+    });
+    document.getElementById('filter-task').addEventListener('change', async () => {
+        const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
+        await loadSubmissions(sb, activeFilter);
     });
 
     // Save task
@@ -312,10 +323,37 @@ async function loadTasks(sb) {
     }
 }
 
-/** Load and render submissions filtered by status. */
+/** Populate team and task filter dropdowns. */
+async function populateSubmissionFilters(sb) {
+    const [{ data: teams }, { data: tasks }] = await Promise.all([
+        sb.from('bingo_teams').select('id, name').order('name'),
+        sb.from('bingo_tasks').select('id, title, day_number').eq('active', true).order('day_number').order('id'),
+    ]);
+
+    const teamSel = document.getElementById('filter-team');
+    for (const t of (teams || [])) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        teamSel.appendChild(opt);
+    }
+
+    const taskSel = document.getElementById('filter-task');
+    for (const t of (tasks || [])) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = `Day ${t.day_number}: ${t.title}`;
+        taskSel.appendChild(opt);
+    }
+}
+
+/** Load and render submissions filtered by status, team, and task. */
 async function loadSubmissions(sb, filter) {
     const container = document.getElementById('submissions-list');
     container.innerHTML = '<p class="text-muted">Loading…</p>';
+
+    const teamId = document.getElementById('filter-team')?.value || '';
+    const taskId = document.getElementById('filter-task')?.value || '';
 
     let query = sb
         .from('bingo_submissions')
@@ -325,6 +363,8 @@ async function loadSubmissions(sb, filter) {
     if (filter && filter !== 'all') {
         query = query.eq('status', filter);
     }
+    if (teamId) query = query.eq('team_id', teamId);
+    if (taskId) query = query.eq('task_id', taskId);
 
     const { data: subs, error } = await query;
 
@@ -422,6 +462,12 @@ async function loadSubmissions(sb, filter) {
                             <option value="denied" ${s.status === 'denied' ? 'selected' : ''}>Denied</option>
                         </select>
                     </div>
+                    <div style="flex:1;min-width:160px;">
+                        <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Submitted by</label>
+                        <select class="sub-edit-submitter form-input" style="padding:6px 8px;font-size:13px;width:100%;">
+                            <option value="">Loading members…</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Items submitted</label>
@@ -502,10 +548,28 @@ async function loadSubmissions(sb, filter) {
             });
         }
 
-        editBtn.addEventListener('click', () => {
+        let teamMembers = null;
+        editBtn.addEventListener('click', async () => {
             const open = editForm.style.display !== 'none';
             editForm.style.display = open ? 'none' : '';
-            if (!open) renderItemInputs(pieceItems);
+            if (!open) {
+                renderItemInputs(pieceItems);
+                // Lazy-load team members once
+                const submitterSelect = row.querySelector('.sub-edit-submitter');
+                if (!teamMembers) {
+                    const { data: members } = await sb
+                        .from('bingo_team_members')
+                        .select('rsn, discord_id')
+                        .eq('team_id', s.team_id)
+                        .order('rsn');
+                    teamMembers = members || [];
+                }
+                submitterSelect.innerHTML = teamMembers.map(m => {
+                    const selected = m.discord_id === s.submitted_by_discord_id ||
+                                     (!s.submitted_by_discord_id && m.rsn === s.submitted_by_rsn);
+                    return `<option value="${escapeHTML(m.discord_id || '')}|${escapeHTML(m.rsn)}" ${selected ? 'selected' : ''}>${escapeHTML(m.rsn)}</option>`;
+                }).join('') || '<option value="">No members found</option>';
+            }
         });
 
         row.querySelector('.sub-add-item-btn').addEventListener('click', () => {
@@ -537,9 +601,19 @@ async function loadSubmissions(sb, filter) {
             saveBtn.textContent = 'Saving…';
             msgEl.textContent = '';
 
+            const submitterVal = row.querySelector('.sub-edit-submitter').value;
+            const [newDiscordId, newRsn] = submitterVal.split('|');
+            const updatePayload = {
+                status: newStatus,
+                piece_label: newLabel,
+                reviewed_at: new Date().toISOString(),
+                submitted_by_rsn: newRsn || null,
+                submitted_by_discord_id: newDiscordId || null,
+            };
+
             const { error } = await sb
                 .from('bingo_submissions')
-                .update({ status: newStatus, piece_label: newLabel, reviewed_at: new Date().toISOString() })
+                .update(updatePayload)
                 .eq('id', s.id);
 
             if (error) {

@@ -84,14 +84,20 @@
 
             <!-- Submissions review -->
             <div style="margin-top:2.5rem;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                    <h3>Submissions</h3>
+                <h3 style="margin-bottom:0.75rem;">Submissions</h3>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:1rem;">
                     <div style="display:flex;gap:0.5rem;">
                         <button id="filter-pending" class="btn btn-outline filter-btn active" data-filter="pending">Pending</button>
                         <button id="filter-approved" class="btn btn-outline filter-btn" data-filter="approved">Approved</button>
                         <button id="filter-denied" class="btn btn-outline filter-btn" data-filter="denied">Denied</button>
                         <button id="filter-all" class="btn btn-outline filter-btn" data-filter="all">All</button>
                     </div>
+                    <select id="filter-team" class="form-input" style="padding:6px 8px;font-size:13px;max-width:180px;">
+                        <option value="">All teams</option>
+                    </select>
+                    <select id="filter-task" class="form-input" style="padding:6px 8px;font-size:13px;max-width:220px;">
+                        <option value="">All tasks</option>
+                    </select>
                 </div>
                 <div id="submissions-list"></div>
             </div>
