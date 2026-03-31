@@ -3,7 +3,7 @@
  */
 
 import { currentDay, TOTAL_DAYS } from './config.js';
-import { fetchLeaderboard, fetchTeamDetails } from './supabase.js';
+import { fetchLeaderboard, fetchTeamDetails, fetchTeamTimeslots } from './supabase.js';
 
 const MEDALS = ['', '\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49']; // 1st, 2nd, 3rd
 
@@ -11,7 +11,7 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
     const el = document.getElementById(containerId);
     if (!el) return;
 
-    const rows = await fetchLeaderboard();
+    const [rows, timeslots] = await Promise.all([fetchLeaderboard(), fetchTeamTimeslots()]);
     if (!rows.length) {
         el.innerHTML = '<p class="text-muted text-center">No teams yet.</p>';
         return;
@@ -26,6 +26,16 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
         const pct    = (r.total_points / maxPts) * 100;
         const colour = r.team_colour || '#e94560';
 
+        const ts = timeslots[r.team_name];
+        let timeslotStr = '';
+        if (ts?.timeslot_start) {
+            const [h, m] = ts.timeslot_start.split(':').map(Number);
+            const hours = ts.timeslot_hours || 4;
+            const endH = (h + hours) % 24;
+            const endStr = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            timeslotStr = `${ts.timeslot_start}–${endStr}`;
+        }
+
         const wrapper = document.createElement('div');
         wrapper.className = 'lb-wrapper';
         wrapper.style.setProperty('--i', i);
@@ -34,7 +44,10 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
             <div class="lb-row lb-row-clickable">
                 <div class="lb-rank">${medal}</div>
                 <div class="lb-info">
-                    <div class="lb-name">${escapeHTML(r.team_name)}</div>
+                    <div class="lb-name-row">
+                        <div class="lb-name">${escapeHTML(r.team_name)}</div>
+                        ${timeslotStr ? `<div class="lb-timeslot">${timeslotStr}</div>` : ''}
+                    </div>
                     <div class="lb-bar-wrap">
                         <div class="lb-bar" style="width:${pct}%; background:${colour};"></div>
                     </div>

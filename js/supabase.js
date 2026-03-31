@@ -112,6 +112,18 @@ export async function fetchLeaderboard() {
     return data;
 }
 
+/** Fetch timeslot info for all teams. Returns map of team name → { timeslot_start, timeslot_hours } */
+export async function fetchTeamTimeslots() {
+    const sb = getClient();
+    const { data, error } = await sb
+        .from('bingo_teams')
+        .select('name, timeslot_start, timeslot_hours');
+    if (error) { console.error('fetchTeamTimeslots', error); return {}; }
+    const map = {};
+    for (const t of (data || [])) map[t.name] = t;
+    return map;
+}
+
 /** Fetch a team by passphrase (for login). */
 export async function fetchTeamByPassphrase(passphrase) {
     const sb = getClient();
