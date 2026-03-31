@@ -84,7 +84,52 @@
 
             <!-- Submissions review -->
             <div style="margin-top:2.5rem;">
-                <h3 style="margin-bottom:0.75rem;">Submissions</h3>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                    <h3>Submissions</h3>
+                    <button id="add-sub-toggle-btn" class="btn btn-outline" style="font-size:0.8rem;">+ Add Submission</button>
+                </div>
+
+                <!-- Manual add submission form -->
+                <div id="add-sub-form" class="card" style="display:none;margin-bottom:1.25rem;padding:1rem;">
+                    <h4 style="margin-bottom:0.75rem;font-size:0.95rem;color:var(--accent-gold);">Add Manual Submission</h4>
+                    <div class="form-row" style="flex-wrap:wrap;">
+                        <div class="form-group">
+                            <label class="form-label">Team</label>
+                            <select id="add-sub-team" class="form-input"></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Task</label>
+                            <select id="add-sub-task" class="form-input"></select>
+                        </div>
+                    </div>
+                    <div class="form-row" style="flex-wrap:wrap;">
+                        <div class="form-group">
+                            <label class="form-label">Submitted by</label>
+                            <select id="add-sub-submitter" class="form-input">
+                                <option value="">Select a team first</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select id="add-sub-status" class="form-input">
+                                <option value="approved">Approved</option>
+                                <option value="pending">Pending</option>
+                                <option value="denied">Denied</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Items submitted (optional)</label>
+                        <div id="add-sub-items-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
+                        <button id="add-sub-add-item-btn" class="btn btn-outline" style="font-size:12px;padding:4px 10px;">+ Add item</button>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                        <button id="add-sub-save-btn" class="btn btn-gold">Save Submission</button>
+                        <button id="add-sub-cancel-btn" class="btn btn-outline">Cancel</button>
+                    </div>
+                    <p id="add-sub-status-msg" style="margin-top:0.4rem;font-size:12px;"></p>
+                </div>
+
                 <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:1rem;">
                     <div style="display:flex;gap:0.5rem;">
                         <button id="filter-pending" class="btn btn-outline filter-btn active" data-filter="pending">Pending</button>

@@ -154,6 +154,9 @@ async function initAdmin(serviceKey) {
         await loadSubmissions(sb, activeFilter);
     });
 
+    // ── Add Submission form ──────────────────────────────────────────
+    initAddSubmissionForm(sb);
+
     // Save task
     saveBtn.addEventListener('click', async () => {
         const dayNum = parseInt(document.getElementById('task-day').value, 10);
@@ -236,6 +239,126 @@ function populateForm(task) {
     document.getElementById('task-cancel-btn').style.display = '';
     document.getElementById('task-save-status').textContent = '';
     document.getElementById('task-day').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/** Wire up the manual add-submission form. */
+function initAddSubmissionForm(sb) {
+    const toggleBtn = document.getElementById('add-sub-toggle-btn');
+    const form      = document.getElementById('add-sub-form');
+    const teamSel   = document.getElementById('add-sub-team');
+    const taskSel   = document.getElementById('add-sub-task');
+    const submSel   = document.getElementById('add-sub-submitter');
+    const itemsList = document.getElementById('add-sub-items-list');
+    const msgEl     = document.getElementById('add-sub-status-msg');
+
+    // Populate team + task dropdowns from the filter selects (already populated)
+    const copyOptions = (src, dest) => {
+        dest.innerHTML = '';
+        for (const opt of src.options) {
+            if (!opt.value) continue;
+            dest.appendChild(opt.cloneNode(true));
+        }
+    };
+
+    toggleBtn.addEventListener('click', () => {
+        const open = form.style.display !== 'none';
+        form.style.display = open ? 'none' : '';
+        if (!open) {
+            copyOptions(document.getElementById('filter-team'), teamSel);
+            copyOptions(document.getElementById('filter-task'), taskSel);
+            submSel.innerHTML = '<option value="">Select a team first</option>';
+            renderAddItems([]);
+            msgEl.textContent = '';
+        }
+    });
+
+    document.getElementById('add-sub-cancel-btn').addEventListener('click', () => {
+        form.style.display = 'none';
+    });
+
+    // When team changes, load its members into the submitter dropdown
+    teamSel.addEventListener('change', async () => {
+        submSel.innerHTML = '<option value="">Loading…</option>';
+        if (!teamSel.value) {
+            submSel.innerHTML = '<option value="">Select a team first</option>';
+            return;
+        }
+        const { data: members } = await sb
+            .from('bingo_team_members')
+            .select('rsn, discord_id')
+            .eq('team_id', teamSel.value)
+            .order('rsn');
+        submSel.innerHTML = (members || []).map(m =>
+            `<option value="${escapeHTML(m.discord_id || '')}|${escapeHTML(m.rsn)}">${escapeHTML(m.rsn)}</option>`
+        ).join('') || '<option value="">No members found</option>';
+    });
+
+    function renderAddItems(items) {
+        itemsList.innerHTML = '';
+        (items.length ? items : []).forEach(val => addItemRow(val));
+    }
+
+    function addItemRow(val = '') {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        wrap.innerHTML = `
+            <input type="text" class="form-input add-sub-item-input" style="padding:5px 8px;font-size:13px;flex:1;" placeholder="e.g. Royal Sight" value="${escapeHTML(val)}">
+            <button class="btn btn-outline" style="padding:4px 8px;font-size:12px;border-color:#e74c3c;color:#e74c3c;" title="Remove">✕</button>
+        `;
+        wrap.querySelector('button').addEventListener('click', () => wrap.remove());
+        itemsList.appendChild(wrap);
+    }
+
+    document.getElementById('add-sub-add-item-btn').addEventListener('click', () => addItemRow());
+
+    document.getElementById('add-sub-save-btn').addEventListener('click', async () => {
+        const teamId = teamSel.value;
+        const taskId = taskSel.value;
+        const status = document.getElementById('add-sub-status').value;
+        const submVal = submSel.value;
+
+        msgEl.textContent = '';
+        if (!teamId || !taskId) {
+            msgEl.textContent = 'Please select a team and task.';
+            msgEl.style.color = '#e74c3c';
+            return;
+        }
+
+        const [discordId, rsn] = submVal ? submVal.split('|') : ['', ''];
+        const labels = [...itemsList.querySelectorAll('.add-sub-item-input')]
+            .map(i => i.value.trim()).filter(Boolean);
+        const pieceLabel = labels.length ? labels.join(', ') : null;
+
+        const saveBtn = document.getElementById('add-sub-save-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+
+        const { error } = await sb.from('bingo_submissions').insert({
+            team_id: teamId,
+            task_id: taskId,
+            status,
+            submitted_by_rsn: rsn || null,
+            submitted_by_discord_id: discordId || null,
+            piece_label: pieceLabel,
+            pieces: labels.length || 1,
+            source: 'admin',
+            attachments: [],
+        });
+
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Submission';
+
+        if (error) {
+            msgEl.textContent = 'Failed: ' + error.message;
+            msgEl.style.color = '#e74c3c';
+        } else {
+            msgEl.textContent = 'Submission added!';
+            msgEl.style.color = '#2ecc71';
+            renderAddItems([]);
+            const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
+            await loadSubmissions(sb, activeFilter);
+        }
+    });
 }
 
 /** Load and render all tasks grouped by day. */
