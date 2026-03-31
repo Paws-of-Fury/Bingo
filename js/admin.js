@@ -371,7 +371,7 @@ function initAddSubmissionForm(sb) {
             submitted_by_discord_id: discordId || null,
             piece_label: pieceLabel,
             pieces: labels.length || 1,
-            source: 'admin',
+            source: 'website',
             attachments: imageUrls,
         });
 
