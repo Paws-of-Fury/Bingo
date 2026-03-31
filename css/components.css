@@ -415,8 +415,6 @@
 
 .lb-wrapper {
     margin-bottom: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-subtle);
 }
 
 .lb-row {
@@ -426,7 +424,8 @@
     background: var(--bg-card);
     padding: 1rem 1.5rem;
     transition: transform var(--transition-fast);
-    border-radius: 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
 }
 
 .lb-row-clickable {
@@ -448,10 +447,9 @@
 }
 
 .lb-members {
-    margin: 0 10px 8px;
+    margin: 4px 10px 0;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border-subtle);
-    border-top: none;
     border-radius: 0 0 6px 6px;
 }
 
