@@ -3,7 +3,7 @@
  */
 
 import { currentDay, TOTAL_DAYS } from './config.js';
-import { fetchLeaderboard } from './supabase.js';
+import { fetchLeaderboard, fetchTeamDetails } from './supabase.js';
 
 const MEDALS = ['', '\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49']; // 1st, 2nd, 3rd
 
@@ -18,15 +18,20 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
     }
 
     const maxPts = Math.max(...rows.map(r => r.total_points), 1);
+    el.innerHTML = '';
 
-    el.innerHTML = rows.map((r, i) => {
-        const rank = i + 1;
-        const medal = MEDALS[rank] || `${rank}.`;
-        const pct = (r.total_points / maxPts) * 100;
+    rows.forEach((r, i) => {
+        const rank   = i + 1;
+        const medal  = MEDALS[rank] || `${rank}.`;
+        const pct    = (r.total_points / maxPts) * 100;
         const colour = r.team_colour || '#e94560';
 
-        return `
-            <div class="lb-row" style="--i:${i}">
+        const wrapper = document.createElement('div');
+        wrapper.className = 'lb-wrapper';
+        wrapper.style.setProperty('--i', i);
+
+        wrapper.innerHTML = `
+            <div class="lb-row lb-row-clickable">
                 <div class="lb-rank">${medal}</div>
                 <div class="lb-info">
                     <div class="lb-name">${escapeHTML(r.team_name)}</div>
@@ -35,14 +40,46 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
                     </div>
                 </div>
                 <div class="lb-points">${r.total_points}</div>
+                <div class="lb-chevron">▾</div>
+            </div>
+            <div class="lb-members" style="display:none;">
+                <div class="lb-members-inner">
+                    <p class="text-muted" style="font-size:0.85rem;">Loading members…</p>
+                </div>
             </div>
         `;
-    }).join('');
 
-    // Trigger bar animation after DOM update
-    requestAnimationFrame(() => {
-        el.querySelectorAll('.lb-bar').forEach(bar => {
-            bar.style.width = bar.style.width; // force reflow
+        el.appendChild(wrapper);
+
+        const row       = wrapper.querySelector('.lb-row');
+        const panel     = wrapper.querySelector('.lb-members');
+        const inner     = wrapper.querySelector('.lb-members-inner');
+        const chevron   = wrapper.querySelector('.lb-chevron');
+        let loaded      = false;
+
+        row.addEventListener('click', async () => {
+            const open = panel.style.display !== 'none';
+            panel.style.display = open ? 'none' : '';
+            chevron.textContent = open ? '▾' : '▴';
+            wrapper.classList.toggle('lb-expanded', !open);
+
+            if (!open && !loaded) {
+                loaded = true;
+                const members = await fetchTeamDetails(r.team_id || r.team_name);
+                if (!members.length) {
+                    inner.innerHTML = '<p class="text-muted" style="font-size:0.85rem;">No members found.</p>';
+                    return;
+                }
+                inner.innerHTML = members.map(m => `
+                    <div class="lb-member-row">
+                        <span class="lb-member-name">${escapeHTML(m.rsn)}</span>
+                        <span class="lb-member-stats">
+                            <span class="lb-member-subs">${m.approved_count} submission${m.approved_count !== 1 ? 's' : ''}</span>
+                            <span class="lb-member-pts">${m.personal_points} pts</span>
+                        </span>
+                    </div>
+                `).join('');
+            }
         });
     });
 }

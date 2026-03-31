@@ -150,6 +150,7 @@ async function initAdmin(serviceKey) {
         const desc = document.getElementById('task-desc').value.trim() || null;
         const img = document.getElementById('task-image').value.trim() || null;
         const pts = parseInt(document.getElementById('task-points').value, 10) || 1;
+        const reqPieces = parseInt(document.getElementById('task-pieces').value, 10) || 1;
         const editId = editIdField.value;
 
         if (!dayNum || dayNum < 1 || (dayNum > TOTAL_DAYS && dayNum !== 100)) {
@@ -170,14 +171,14 @@ async function initAdmin(serviceKey) {
             if (editId) {
                 const { error } = await sb
                     .from('bingo_tasks')
-                    .update({ day_number: dayNum, title, description: desc, image_url: img, points: pts })
+                    .update({ day_number: dayNum, title, description: desc, image_url: img, points: pts, required_pieces: reqPieces })
                     .eq('id', parseInt(editId, 10));
                 if (error) throw error;
                 statusEl.textContent = 'Task updated!';
             } else {
                 const { error } = await sb
                     .from('bingo_tasks')
-                    .insert({ day_number: dayNum, title, description: desc, image_url: img, points: pts, active: true });
+                    .insert({ day_number: dayNum, title, description: desc, image_url: img, points: pts, required_pieces: reqPieces, active: true });
                 if (error) throw error;
                 statusEl.textContent = 'Task added!';
             }
@@ -206,6 +207,7 @@ function clearForm() {
     document.getElementById('task-desc').value = '';
     document.getElementById('task-image').value = '';
     document.getElementById('task-points').value = '1';
+    document.getElementById('task-pieces').value = '1';
     document.getElementById('task-save-btn').textContent = 'Add Task';
     document.getElementById('task-cancel-btn').style.display = 'none';
     document.getElementById('task-save-status').textContent = '';
@@ -218,6 +220,7 @@ function populateForm(task) {
     document.getElementById('task-desc').value = task.description || '';
     document.getElementById('task-image').value = task.image_url || '';
     document.getElementById('task-points').value = task.points;
+    document.getElementById('task-pieces').value = task.required_pieces || 1;
     document.getElementById('task-save-btn').textContent = 'Update Task';
     document.getElementById('task-cancel-btn').style.display = '';
     document.getElementById('task-save-status').textContent = '';
@@ -272,12 +275,14 @@ async function loadTasks(sb) {
 
         for (const t of dayTasks) {
             const tier = t.points >= 6 ? 'Gold' : t.points >= 3 ? 'Silver' : 'Bronze';
+            const reqPcs = t.required_pieces || 1;
+            const pcsLabel = reqPcs > 1 ? ` × ${reqPcs} pieces` : '';
             const row = document.createElement('div');
             row.className = 'admin-task-row';
             row.innerHTML = `
                 <div class="admin-task-info">
                     <span class="admin-task-title">${escapeHTML(t.title)}</span>
-                    <span class="admin-task-pts">${t.points} pts (${tier})</span>
+                    <span class="admin-task-pts">${t.points} pts (${tier})${pcsLabel}</span>
                 </div>
                 <div class="admin-task-actions">
                     <button class="btn btn-outline admin-edit-btn" data-id="${t.id}">Edit</button>
@@ -372,12 +377,23 @@ async function loadSubmissions(sb, filter) {
             imagesHTML += '</div>';
         }
 
+        const pieceItems = s.piece_label ? s.piece_label.split(',').map(p => p.trim()).filter(Boolean) : [];
+        const pieceLabel = pieceItems.length
+            ? pieceItems.map(p => `<span class="sub-piece-label">🔹 ${escapeHTML(p)}</span>`).join('')
+            : '';
+
         let actionsHTML = '';
         if (s.status === 'pending') {
             actionsHTML = `
                 <div class="sub-actions">
                     <button class="btn btn-outline sub-approve-btn" data-id="${s.id}" style="border-color:#2ecc71;color:#2ecc71;">Approve</button>
                     <button class="btn btn-outline sub-deny-btn" data-id="${s.id}" style="border-color:#e74c3c;color:#e74c3c;">Deny</button>
+                    <button class="btn btn-outline sub-edit-btn" data-id="${s.id}">Edit</button>
+                </div>`;
+        } else {
+            actionsHTML = `
+                <div class="sub-actions">
+                    <button class="btn btn-outline sub-edit-btn" data-id="${s.id}">Edit</button>
                 </div>`;
         }
 
@@ -385,7 +401,8 @@ async function loadSubmissions(sb, filter) {
             <div class="sub-header">
                 <div class="sub-info">
                     <span class="sub-team" style="color:${escapeHTML(teamColour)}">${escapeHTML(teamName)}</span>
-                    <span class="sub-task">Day ${dayNum}: ${escapeHTML(taskTitle)} (${pts} pts)</span>
+                    <span class="sub-task">Day ${dayNum}: ${escapeHTML(taskTitle)} (${pts} pts${s.pieces > 1 ? `, ${s.pieces} pcs` : ''})</span>
+                    ${pieceLabel}
                 </div>
                 ${statusBadge}
             </div>
@@ -395,6 +412,28 @@ async function loadSubmissions(sb, filter) {
             </div>
             ${imagesHTML}
             ${actionsHTML}
+            <div class="sub-edit-form" style="display:none;margin-top:0.75rem;padding:0.75rem;background:#1a1a2e;border-radius:6px;border:1px solid #333;">
+                <div style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.5rem;">
+                    <div>
+                        <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Status</label>
+                        <select class="sub-edit-status form-input" style="padding:6px 8px;font-size:13px;">
+                            <option value="pending" ${s.status === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="approved" ${s.status === 'approved' ? 'selected' : ''}>Approved</option>
+                            <option value="denied" ${s.status === 'denied' ? 'selected' : ''}>Denied</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Items submitted</label>
+                    <div class="sub-items-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
+                    <button class="btn btn-outline sub-add-item-btn" style="font-size:12px;padding:4px 10px;">+ Add item</button>
+                </div>
+                <div style="display:flex;gap:0.5rem;margin-top:0.6rem;">
+                    <button class="btn btn-gold sub-save-btn" style="padding:6px 14px;font-size:13px;">Save</button>
+                    <button class="btn btn-outline sub-cancel-btn" style="padding:6px 14px;font-size:13px;">Cancel</button>
+                </div>
+                <p class="sub-edit-status-msg" style="margin-top:0.4rem;font-size:12px;"></p>
+            </div>
         `;
 
         container.appendChild(row);
@@ -440,6 +479,79 @@ async function loadSubmissions(sb, filter) {
                 }
             });
         }
+
+        // Edit button — toggle inline form and populate items
+        const editBtn = row.querySelector('.sub-edit-btn');
+        const editForm = row.querySelector('.sub-edit-form');
+        const itemsList = row.querySelector('.sub-items-list');
+
+        function renderItemInputs(items) {
+            itemsList.innerHTML = '';
+            (items.length ? items : ['']).forEach((val, i) => {
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+                wrap.innerHTML = `
+                    <input type="text" class="form-input sub-item-input" style="padding:5px 8px;font-size:13px;flex:1;" placeholder="e.g. Royal Sight" value="${escapeHTML(val)}">
+                    <button class="btn btn-outline sub-remove-item" style="padding:4px 8px;font-size:12px;border-color:#e74c3c;color:#e74c3c;" title="Remove">✕</button>
+                `;
+                wrap.querySelector('.sub-remove-item').addEventListener('click', () => {
+                    wrap.remove();
+                    if (itemsList.children.length === 0) renderItemInputs([]);
+                });
+                itemsList.appendChild(wrap);
+            });
+        }
+
+        editBtn.addEventListener('click', () => {
+            const open = editForm.style.display !== 'none';
+            editForm.style.display = open ? 'none' : '';
+            if (!open) renderItemInputs(pieceItems);
+        });
+
+        row.querySelector('.sub-add-item-btn').addEventListener('click', () => {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+            wrap.innerHTML = `
+                <input type="text" class="form-input sub-item-input" style="padding:5px 8px;font-size:13px;flex:1;" placeholder="e.g. Royal Bolt">
+                <button class="btn btn-outline sub-remove-item" style="padding:4px 8px;font-size:12px;border-color:#e74c3c;color:#e74c3c;" title="Remove">✕</button>
+            `;
+            wrap.querySelector('.sub-remove-item').addEventListener('click', () => {
+                wrap.remove();
+                if (itemsList.children.length === 0) renderItemInputs([]);
+            });
+            itemsList.appendChild(wrap);
+        });
+
+        row.querySelector('.sub-cancel-btn').addEventListener('click', () => {
+            editForm.style.display = 'none';
+        });
+
+        row.querySelector('.sub-save-btn').addEventListener('click', async () => {
+            const newStatus = row.querySelector('.sub-edit-status').value;
+            const inputs = [...row.querySelectorAll('.sub-item-input')];
+            const labels = inputs.map(i => i.value.trim()).filter(Boolean);
+            const newLabel = labels.length ? labels.join(', ') : null;
+            const msgEl = row.querySelector('.sub-edit-status-msg');
+            const saveBtn = row.querySelector('.sub-save-btn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
+            msgEl.textContent = '';
+
+            const { error } = await sb
+                .from('bingo_submissions')
+                .update({ status: newStatus, piece_label: newLabel, reviewed_at: new Date().toISOString() })
+                .eq('id', s.id);
+
+            if (error) {
+                msgEl.textContent = 'Failed: ' + error.message;
+                msgEl.style.color = '#e74c3c';
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+            } else {
+                const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
+                await loadSubmissions(sb, activeFilter);
+            }
+        });
     }
 }
 

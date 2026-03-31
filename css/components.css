@@ -122,24 +122,26 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     padding: 0.75rem;
 }
 
 /* Multi-image grid on card back */
 .card-images {
     position: absolute;
-    inset: 0;
+    inset: 2px;
     display: grid;
     gap: 2px;
-    border-radius: var(--card-radius);
+    border-radius: calc(var(--card-radius) - 2px);
     overflow: hidden;
-    opacity: 0.4;
+    opacity: 0.85;
 }
 .card-images img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    min-height: 0;
+    min-width: 0;
 }
 /* 1 image: full card */
 .card-images-1 { grid-template: 1fr / 1fr; }
@@ -147,7 +149,7 @@
 .card-images-2 { grid-template-rows: 1fr 1fr; grid-template-columns: 1fr; }
 /* 3 images: top spans full width, bottom two side by side */
 .card-images-3 {
-    grid-template-rows: 3fr 2fr;
+    grid-template-rows: 1fr 1fr;
     grid-template-columns: 1fr 1fr;
 }
 .card-images-3 img:first-child { grid-column: 1 / -1; }
@@ -157,6 +159,10 @@
     z-index: 2;
     text-align: center;
     width: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
 .day-card-back .card-title {
@@ -216,7 +222,6 @@
     justify-content: center;
     font-size: 0.65rem;
     font-weight: 900;
-    transform: rotateY(180deg);
     white-space: nowrap;
 }
 
@@ -237,9 +242,9 @@
 
 /* Multi-task card list */
 .day-card-back .card-task-count {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.15rem;
     opacity: 0.9;
 }
 
@@ -247,14 +252,14 @@
     list-style: none;
     padding: 0;
     margin: 0;
-    text-align: left;
+    text-align: center;
     width: 100%;
 }
 
 .day-card-back .card-task-list li {
-    font-size: 0.65rem;
-    line-height: 1.3;
-    padding: 1px 0;
+    font-size: 0.6rem;
+    line-height: 1.15;
+    padding: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -285,6 +290,9 @@
     border-radius: var(--card-radius);
     overflow: hidden;
     box-shadow: var(--card-shadow);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .task-unrevealed {
@@ -306,14 +314,17 @@
 .task-revealed {
     position: relative;
     padding: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .task-image {
     width: calc(100% - 1.5rem);
-    max-height: 220px;
+    height: 150px;
     margin: 0.75rem auto 0;
     display: block;
-    object-fit: cover;
+    object-fit: contain;
     border-radius: 8px;
 }
 
@@ -328,6 +339,7 @@
     color: var(--text-secondary);
     font-size: 0.85rem;
     line-height: 1.5;
+    flex: 1;
 }
 
 .task-meta {
@@ -368,7 +380,7 @@
 /* Tasks container (day page — multiple task cards) */
 .tasks-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.5rem;
 }
 
@@ -399,20 +411,87 @@
 
 .login-prompt { color: var(--text-muted); }
 
-/* ── Leaderboard Row ──────────────────────────────────── */
+/* ── Leaderboard ──────────────────────────────────────── */
+
+.lb-wrapper {
+    margin-bottom: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
 
 .lb-row {
     display: flex;
     align-items: center;
     gap: 1rem;
     background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--card-radius);
     padding: 1rem 1.5rem;
     transition: transform var(--transition-fast);
+    border-radius: 0;
 }
-.lb-row:hover {
+
+.lb-row-clickable {
+    cursor: pointer;
+    user-select: none;
+}
+.lb-row-clickable:hover {
     transform: translateX(4px);
+}
+.lb-expanded .lb-row-clickable:hover {
+    transform: none;
+}
+
+.lb-chevron {
+    font-size: 1rem;
+    color: var(--text-muted);
+    min-width: 1rem;
+    text-align: center;
+}
+
+.lb-members {
+    margin: 0 10px 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-subtle);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+}
+
+.lb-members-inner {
+    padding: 0.5rem 1.25rem 0.75rem;
+}
+
+.lb-member-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.9rem;
+}
+.lb-member-row:last-child {
+    border-bottom: none;
+}
+
+.lb-member-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.lb-member-stats {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.lb-member-subs {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.lb-member-pts {
+    color: var(--accent-gold);
+    font-weight: 700;
+    min-width: 50px;
+    text-align: right;
 }
 
 .lb-rank {
@@ -692,6 +771,40 @@
 .sub-badge-denied   { background: #e74c3c; color: #fff; }
 .sub-badge-pending  { background: #f39c12; color: #000; }
 
+.sub-piece-label {
+    font-size: 0.78rem;
+    color: #7289da;
+    margin-top: 2px;
+    display: block;
+}
+
+.obtained-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 4px;
+    justify-content: center;
+}
+
+.obtained-item {
+    font-size: 0.78rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.obtained-approved {
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.obtained-pending {
+    background: rgba(243, 156, 18, 0.15);
+    color: #f39c12;
+    border: 1px solid rgba(243, 156, 18, 0.3);
+}
+
 .sub-images {
     display: flex;
     flex-wrap: wrap;
@@ -723,6 +836,126 @@
 .sub-actions .btn {
     padding: 0.4rem 1rem;
     font-size: 0.8rem;
+}
+
+/* ── Info Page ────────────────────────────────────────── */
+
+.info-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 3rem;
+}
+
+.info-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--card-radius);
+    padding: 1.5rem 1.75rem;
+    margin-top: 1.25rem;
+    box-shadow: var(--card-shadow);
+}
+
+.info-section h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.info-section h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 1rem;
+    margin-bottom: 0.4rem;
+}
+
+.info-section p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.65;
+}
+
+.info-section ul,
+.info-section ol {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.info-section li {
+    margin-bottom: 0.35rem;
+    line-height: 1.55;
+}
+
+.info-section code {
+    background: rgba(255, 215, 0, 0.1);
+    color: var(--accent-gold);
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+}
+
+.info-section strong {
+    color: var(--text-primary);
+}
+
+.tier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.tier-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+.tier-label-badge {
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    min-width: 55px;
+    text-align: center;
+}
+
+.tier-bronze-bg {
+    background: rgba(205, 127, 50, 0.1);
+    border: 1px solid rgba(205, 127, 50, 0.25);
+}
+.tier-bronze-bg .tier-label-badge {
+    background: rgba(205, 127, 50, 0.2);
+    color: var(--tier-bronze);
+}
+
+.tier-silver-bg {
+    background: rgba(192, 192, 192, 0.08);
+    border: 1px solid rgba(192, 192, 192, 0.2);
+}
+.tier-silver-bg .tier-label-badge {
+    background: rgba(192, 192, 192, 0.15);
+    color: var(--tier-silver);
+}
+
+.tier-gold-bg {
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+.tier-gold-bg .tier-label-badge {
+    background: rgba(255, 215, 0, 0.15);
+    color: var(--tier-gold);
 }
 
 /* ── Utility ──────────────────────────────────────────── */

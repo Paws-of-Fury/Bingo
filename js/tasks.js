@@ -3,7 +3,7 @@
  */
 
 import { currentDay, dateForDay, tierInfo, BINGO_START, TOTAL_DAYS } from './config.js';
-import { fetchTasks, fetchTeamSubmissions } from './supabase.js';
+import { fetchTasks, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
 import { getSession } from './auth.js';
 
 /** Build the 15-card grid (supports multiple tasks per day). */
@@ -11,17 +11,9 @@ export async function renderDayGrid() {
     const grid = document.getElementById('day-grid');
     if (!grid) return;
 
-    let day = currentDay();
-    const TEST_USER_ID = '145884917627224065';
-    const session0 = getSession();
-    const isTestUser = session0?.discord_id === TEST_USER_ID;
+    const day = currentDay();
 
-    // Test mode: show day 1 for the test user before the event starts
-    if (isTestUser && day < 1) {
-        day = 1;
-    }
-
-    const tasks = day >= 1 ? await fetchTasks(isTestUser ? 100 : day) : [];
+    const tasks = day >= 1 ? await fetchTasks(day) : [];
 
     // Group tasks by day_number
     const dayTasksMap = {};  // day_number → [task, task, …]
@@ -32,18 +24,16 @@ export async function renderDayGrid() {
 
     // If signed in, fetch team submissions to show completion status
     const session = getSession();
-    let submissionMap = {};  // task_id → status
+    let taskProgress = {};  // task_id → { approved_pieces, has_pending }
     if (session?.team_id) {
         const subs = await fetchTeamSubmissions(session.team_id);
-        submissionMap = Object.fromEntries(subs.map(s => [s.task_id, s.status]));
+        taskProgress = aggregateSubmissions(subs);
     }
 
     grid.innerHTML = '';
 
-    // Build list of days to render — add day 100 for test user
     const dayNumbers = [];
     for (let i = 1; i <= TOTAL_DAYS; i++) dayNumbers.push(i);
-    if (isTestUser && dayTasksMap[100]) dayNumbers.push(100);
 
     for (const i of dayNumbers) {
         const dayTasks = dayTasksMap[i] || [];
@@ -65,7 +55,11 @@ export async function renderDayGrid() {
         // Completion status (only for revealed cards when signed in)
         let statusHTML = '';
         if (isRevealed && session?.team_id) {
-            const doneCount = dayTasks.filter(t => submissionMap[t.id] === 'approved').length;
+            const doneCount = dayTasks.filter(t => {
+                const req = t.required_pieces || 1;
+                const tp = taskProgress[t.id];
+                return tp && tp.approved_pieces >= req;
+            }).length;
             const totalCount = dayTasks.length;
 
             if (doneCount === totalCount) {
@@ -90,7 +84,7 @@ export async function renderDayGrid() {
         if (imgs.length > 0) {
             imagesHTML = `<div class="card-images card-images-${Math.min(imgs.length, 3)}">`;
             for (const url of imgs.slice(0, 3)) {
-                imagesHTML += `<img src="${escapeAttr(url)}" alt="" loading="lazy">`;
+                imagesHTML += `<img src="${escapeAttr(url)}" alt="">`;
             }
             imagesHTML += '</div>';
         }
@@ -108,7 +102,9 @@ export async function renderDayGrid() {
                 <div class="card-task-count">${dayTasks.length} tasks &middot; ${totalPts} pts</div>
                 <ul class="card-task-list">
                     ${dayTasks.map(t => {
-                        const done = session?.team_id && submissionMap[t.id] === 'approved';
+                        const req = t.required_pieces || 1;
+                        const tp = taskProgress[t.id];
+                        const done = session?.team_id && tp && tp.approved_pieces >= req;
                         return `<li class="${done ? 'done' : ''}">${escapeHTML(t.title)}</li>`;
                     }).join('')}
                 </ul>
@@ -154,9 +150,14 @@ export function startCountdown() {
             target = BINGO_START;
             label = 'Event starts in';
         } else if (day <= TOTAL_DAYS) {
-            // Next day reveal (midnight UK)
-            const tomorrow = dateForDay(day + 1);
-            target = tomorrow;
+            // Next day reveal at 04:00 UK time (accounts for GMT/BST offset)
+            const tomorrow = dateForDay(day + 1); // midnight UTC
+            const ukHourAtMidnightUTC = parseInt(
+                new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Europe/London', hour: 'numeric', hour12: false, hourCycle: 'h23',
+                }).formatToParts(tomorrow).find(p => p.type === 'hour').value, 10
+            ); // 0 in GMT, 1 in BST
+            target = new Date(tomorrow.getTime() + (4 - ukHourAtMidnightUTC) * 3600000);
             label = 'Next task in';
         } else {
             el.innerHTML = '<p class="text-secondary">Event complete!</p>';

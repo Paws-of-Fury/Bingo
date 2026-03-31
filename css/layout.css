@@ -1,9 +1,9 @@
 /* ── Layout ────────────────────────────────────────────── */
 
 .container {
-    max-width: 1100px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
+    padding: 1rem 1.5rem;
 }
 
 /* ── Navbar ────────────────────────────────────────────── */
@@ -56,11 +56,11 @@
 
 .hero {
     text-align: center;
-    padding: 3rem 1rem 1.5rem;
+    padding: 0.75rem 1rem 0.5rem;
 }
 
 .hero-title {
-    font-size: 2.8rem;
+    font-size: 1.8rem;
     font-weight: 800;
     background: linear-gradient(135deg, var(--accent-gold), var(--accent-ember));
     -webkit-background-clip: text;
@@ -70,15 +70,15 @@
 
 .hero-subtitle {
     color: var(--text-secondary);
-    font-size: 1.1rem;
-    margin-top: 0.3rem;
+    font-size: 0.9rem;
+    margin-top: 0.2rem;
 }
 
 .countdown {
     display: flex;
     justify-content: center;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+    gap: 1.25rem;
+    margin-top: 0.5rem;
 }
 
 .countdown-unit {
@@ -86,14 +86,14 @@
 }
 
 .countdown-value {
-    font-size: 2rem;
+    font-size: 1.4rem;
     font-weight: 800;
     color: var(--accent-gold);
     font-variant-numeric: tabular-nums;
 }
 
 .countdown-label {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -104,8 +104,8 @@
 .day-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 1.25rem;
-    padding: 1rem 0;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
 }
 
 @media (max-width: 800px) {
@@ -166,9 +166,9 @@
 
 .footer {
     text-align: center;
-    padding: 2rem 1rem;
+    padding: 0.75rem 1rem;
     color: var(--text-muted);
     font-size: 0.85rem;
     border-top: 1px solid var(--border-subtle);
-    margin-top: 4rem;
+    margin-top: 0.5rem;
 }

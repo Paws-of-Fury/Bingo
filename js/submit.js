@@ -3,8 +3,8 @@
  */
 
 import { updateAuthUI, getSession } from './auth.js';
-import { fetchTaskById } from './supabase.js';
-import { SUPABASE_URL } from './config.js';
+import { fetchTaskById, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
+import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
 
 let selectedFiles = [];
 
@@ -29,12 +29,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     const taskId = parseInt(params.get('task'), 10);
     const dayNum = parseInt(params.get('day'), 10);
 
+    let reqPieces = 1;
     if (taskId) {
         const task = await fetchTaskById(taskId);
         if (task) {
+            reqPieces = task.required_pieces || 1;
             document.getElementById('submit-heading').textContent = `Submit: Day ${dayNum || task.day_number} — ${task.title}`;
-            document.getElementById('submit-task-info').textContent =
-                `${task.points} points (${task.points >= 6 ? 'Gold' : task.points >= 3 ? 'Silver' : 'Bronze'})`;
+            let infoText = `${task.points} points (${task.points >= 6 ? 'Gold' : task.points >= 3 ? 'Silver' : 'Bronze'})`;
+            if (reqPieces > 1) infoText += ` — ${reqPieces} pieces required`;
+            document.getElementById('submit-task-info').textContent = infoText;
+
+            // Show "what did you get?" field for multi-piece tasks
+            if (reqPieces > 1 && session?.team_id) {
+                const subs = await fetchTeamSubmissions(session.team_id);
+                const progress = aggregateSubmissions(subs);
+                const tp = progress[taskId] || { approved_pieces: 0, approved_labels: [], pending_labels: [] };
+
+                const piecesRow = document.getElementById('pieces-row');
+                const piecesLabel = document.getElementById('pieces-label');
+
+                // Status summary of what's already submitted
+                let statusHtml = `<strong>Progress: ${tp.approved_pieces}/${reqPieces} approved</strong>`;
+                if (tp.approved_labels.length || tp.pending_labels.length) {
+                    const items = [
+                        ...tp.approved_labels.map(l => `<li>✅ ${l}</li>`),
+                        ...tp.pending_labels.map(l => `<li>⏳ ${l} <em>(pending review)</em></li>`),
+                    ].join('');
+                    statusHtml += `<ul style="margin:4px 0 8px 16px">${items}</ul>`;
+                }
+                piecesLabel.innerHTML = statusHtml + 'What item are you submitting?';
+
+                // Replace number input with a text field
+                const oldInput = document.getElementById('pieces-input');
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.id = 'pieces-input';
+                textInput.className = 'form-input';
+                textInput.placeholder = 'e.g. Royal Sight';
+                textInput.maxLength = 100;
+                textInput.required = true;
+                textInput.style.maxWidth = '300px';
+                oldInput.replaceWith(textInput);
+
+                piecesRow.style.display = '';
+            }
         }
     }
 
@@ -124,15 +162,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const taskId = parseInt(params.get('task'), 10) || null;
 
+            const pieceLabel = reqPieces > 1
+                ? (document.getElementById('pieces-input')?.value?.trim() || null)
+                : null;
+
             const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-proof`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}` },
                 body: JSON.stringify({
                     team_id: session.team_id,
                     task_id: taskId,
                     discord_id: session.discord_id,
                     rsn: session.rsn,
                     attachments,
+                    pieces: 1,
+                    piece_label: pieceLabel,
                 }),
             });
 
@@ -156,9 +200,13 @@ function isWithinTimeslot(session) {
     if (!session.timeslot_start) return true;
 
     const now = new Date();
-    const ukStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' });
-    const uk = new Date(ukStr);
-    const nowMinutes = uk.getHours() * 60 + uk.getMinutes();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/London', hour: 'numeric', minute: 'numeric',
+        hour12: false, hourCycle: 'h23',
+    }).formatToParts(now);
+    const ukH = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    const ukM = parseInt(parts.find(p => p.type === 'minute').value, 10);
+    const nowMinutes = ukH * 60 + ukM;
 
     const [startH, startM] = session.timeslot_start.split(':').map(Number);
     const startMinutes = startH * 60 + startM;

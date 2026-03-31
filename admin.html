@@ -17,6 +17,7 @@
             <img class="logo-icon" src="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=128" alt=""> Paws of Fury Bingo
         </a>
         <div class="nav-links">
+            <a href="info.html" class="nav-link">Info</a>
             <a href="leaderboard.html" class="nav-link">Leaderboard</a>
             <a href="https://discord.gg/paws-of-fury" target="_blank" rel="noopener" class="nav-link">Discord</a>
             <button id="auth-btn" class="btn btn-outline" onclick="window.bingoAuth?.toggleLogin()">Login</button>
@@ -52,6 +53,10 @@
                     <div class="form-group">
                         <label class="form-label">Points</label>
                         <input type="number" id="task-points" class="form-input" min="1" placeholder="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Required Pieces</label>
+                        <input type="number" id="task-pieces" class="form-input" min="1" placeholder="1" value="1">
                     </div>
                 </div>
                 <div class="form-group">

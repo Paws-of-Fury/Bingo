@@ -14,16 +14,21 @@ export const BINGO_START = new Date('2026-03-27T00:00:00+00:00');
 export const BINGO_END   = new Date('2026-04-10T23:59:59+00:00');
 export const TOTAL_DAYS  = 15;
 
-/** Return the current bingo day (1-15), 0 if before start, 16 if after end. */
+/** Return the current bingo day (1-15), 0 if before start, 16 if after end.
+ *  Days start at 04:00 UK time — hours before 4am count as the previous day. */
 export function currentDay() {
-    // Get current UK date parts directly (avoids locale parsing bugs)
     const now = new Date();
-    const ukParts = new Intl.DateTimeFormat('en-CA', {
+    // Get UK date + hour in one call to avoid locale parsing bugs
+    const parts = new Intl.DateTimeFormat('en-GB', {
         timeZone: 'Europe/London',
         year: 'numeric', month: '2-digit', day: '2-digit',
-    }).format(now); // "2026-03-27" format (en-CA = YYYY-MM-DD)
-    const [y, m, d] = ukParts.split('-').map(Number);
-    const todayMs = Date.UTC(y, m - 1, d);
+        hour: 'numeric', hour12: false,
+    }).formatToParts(now);
+    const get = type => parseInt(parts.find(p => p.type === type).value, 10);
+    const y = get('year'), m = get('month'), d = get('day'), h = get('hour');
+
+    let todayMs = Date.UTC(y, m - 1, d);
+    if (h < 4) todayMs -= 1000 * 60 * 60 * 24; // before 4am counts as previous day
     const startMs = Date.UTC(2026, 2, 27); // March = month 2 (0-indexed)
 
     const diff = Math.floor((todayMs - startMs) / (1000 * 60 * 60 * 24));
