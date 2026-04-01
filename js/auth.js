@@ -9,9 +9,32 @@
  */
 
 import { DISCORD_CLIENT_ID, DISCORD_REDIRECT } from './config.js';
-import { fetchTeamByPassphrase, checkMembership } from './supabase.js';
+import { fetchTeamByPassphrase, checkMembership, getClient } from './supabase.js';
 
 const SESSION_KEY = 'bingo_session';
+const ADMIN_VIEW_KEY = 'bingo_admin_view_team'; // { id, name }
+
+/** Get the team ID to use for viewing — admin override or own session. */
+export function getViewTeamId() {
+    if (localStorage.getItem('bingo_admin')) {
+        const override = localStorage.getItem(ADMIN_VIEW_KEY);
+        if (override) {
+            try { return JSON.parse(override).id; } catch { /* fall through */ }
+        }
+    }
+    return getSession()?.team_id || null;
+}
+
+export function getViewTeam() {
+    if (localStorage.getItem('bingo_admin')) {
+        const override = localStorage.getItem(ADMIN_VIEW_KEY);
+        if (override) {
+            try { return JSON.parse(override); } catch { /* fall through */ }
+        }
+    }
+    const s = getSession();
+    return s ? { id: s.team_id, name: s.team_name } : null;
+}
 
 /** Current session (or null). */
 export function getSession() {
@@ -44,18 +67,63 @@ export function updateAuthUI() {
         btn.classList.remove('logged-in');
     }
 
-    // Show admin link in nav if admin is logged in
+    // Show admin link + team switcher if admin is logged in
     const isAdmin = !!localStorage.getItem('bingo_admin');
     const navLinks = document.querySelector('.nav-links');
-    if (navLinks && isAdmin && !document.getElementById('admin-nav-link')) {
-        const link = document.createElement('a');
-        link.href = 'admin.html';
-        link.className = 'nav-link';
-        link.id = 'admin-nav-link';
-        link.textContent = 'Admin';
-        link.style.color = '#ffd700';
-        navLinks.insertBefore(link, navLinks.firstChild);
+    if (navLinks && isAdmin) {
+        if (!document.getElementById('admin-nav-link')) {
+            const link = document.createElement('a');
+            link.href = 'admin.html';
+            link.className = 'nav-link';
+            link.id = 'admin-nav-link';
+            link.textContent = 'Admin';
+            link.style.color = '#ffd700';
+            navLinks.insertBefore(link, navLinks.firstChild);
+        }
+        if (!document.getElementById('admin-team-switcher')) {
+            injectTeamSwitcher(navLinks);
+        }
     }
+}
+
+async function injectTeamSwitcher(navLinks) {
+    const sb = getClient();
+    const { data: teams } = await sb.from('bingo_teams').select('id, name').order('name');
+    if (!teams?.length) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'admin-team-switcher';
+    wrap.style.cssText = 'display:flex;align-items:center;gap:6px;';
+
+    const label = document.createElement('span');
+    label.textContent = 'Viewing:';
+    label.style.cssText = 'font-size:0.8rem;color:var(--text-muted);white-space:nowrap;';
+
+    const sel = document.createElement('select');
+    sel.style.cssText = 'background:var(--bg-card);border:1px solid var(--border-subtle);color:var(--text-primary);border-radius:6px;padding:4px 8px;font-size:0.8rem;cursor:pointer;';
+
+    const stored = localStorage.getItem('bingo_admin_view_team');
+    const currentId = stored ? JSON.parse(stored).id : null;
+
+    for (const t of teams) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        if (t.id === currentId) opt.selected = true;
+        sel.appendChild(opt);
+    }
+
+    sel.addEventListener('change', () => {
+        const team = teams.find(t => t.id === sel.value);
+        if (team) {
+            localStorage.setItem('bingo_admin_view_team', JSON.stringify({ id: team.id, name: team.name }));
+            location.reload();
+        }
+    });
+
+    wrap.appendChild(label);
+    wrap.appendChild(sel);
+    navLinks.insertBefore(wrap, navLinks.firstChild);
 }
 
 /** Toggle login: if logged in → logout, else prompt passphrase. */

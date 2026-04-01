@@ -5,7 +5,7 @@
 
 import { currentDay, dateForDay, tierInfo, TOTAL_DAYS, DOUBLE_POINTS_DAY } from './config.js';
 import { fetchTasksByDay, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
-import { updateAuthUI, getSession } from './auth.js';
+import { updateAuthUI, getSession, getViewTeamId } from './auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     updateAuthUI();
@@ -59,10 +59,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('tasks-container');
     container.style.display = '';
 
-    // Check submissions if signed in
+    // Check submissions if signed in (or admin viewing a team)
     let taskProgress = {};
-    if (session?.team_id) {
-        const subs = await fetchTeamSubmissions(session.team_id);
+    const viewTeamId = getViewTeamId();
+    if (viewTeamId) {
+        const subs = await fetchTeamSubmissions(viewTeamId);
         taskProgress = aggregateSubmissions(subs);
     }
 

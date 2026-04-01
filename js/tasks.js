@@ -4,7 +4,7 @@
 
 import { currentDay, dateForDay, tierInfo, BINGO_START, TOTAL_DAYS } from './config.js';
 import { fetchTasks, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
-import { getSession } from './auth.js';
+import { getSession, getViewTeamId } from './auth.js';
 
 /** Build the 15-card grid (supports multiple tasks per day). */
 export async function renderDayGrid() {
@@ -22,11 +22,12 @@ export async function renderDayGrid() {
         dayTasksMap[t.day_number].push(t);
     }
 
-    // If signed in, fetch team submissions to show completion status
+    // If signed in (or admin viewing a team), fetch submissions to show completion status
     const session = getSession();
+    const viewTeamId = getViewTeamId();
     let taskProgress = {};  // task_id → { approved_pieces, has_pending }
-    if (session?.team_id) {
-        const subs = await fetchTeamSubmissions(session.team_id);
+    if (viewTeamId) {
+        const subs = await fetchTeamSubmissions(viewTeamId);
         taskProgress = aggregateSubmissions(subs);
     }
 
@@ -54,7 +55,7 @@ export async function renderDayGrid() {
 
         // Completion status (only for revealed cards when signed in)
         let statusHTML = '';
-        if (isRevealed && session?.team_id) {
+        if (isRevealed && viewTeamId) {
             const doneCount = dayTasks.filter(t => {
                 const req = t.required_pieces || 1;
                 const tp = taskProgress[t.id];

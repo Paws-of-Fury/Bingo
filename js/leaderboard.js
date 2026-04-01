@@ -4,7 +4,7 @@
 
 import { currentDay, TOTAL_DAYS, DOUBLE_POINTS_DAY } from './config.js';
 import { fetchLeaderboard, fetchTeamDetails, fetchTeamTimeslots, fetchMemberSubmissions } from './supabase.js';
-import { getSession } from './auth.js';
+import { getSession, getViewTeamId } from './auth.js';
 
 const MEDALS = ['', '\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49']; // 1st, 2nd, 3rd
 
@@ -13,6 +13,7 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
     if (!el) return;
 
     const session = getSession();
+    const isAdmin = !!localStorage.getItem('bingo_admin');
 
     const [rows, timeslots] = await Promise.all([fetchLeaderboard(), fetchTeamTimeslots()]);
     if (!rows.length) {
@@ -87,10 +88,10 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
                     return;
                 }
 
-                const isOwnTeam = session && (
+                const isOwnTeam = isAdmin || (session && (
                     session.team_name === r.team_name ||
                     (r.team_id && String(session.team_id) === String(r.team_id))
-                );
+                ));
 
                 inner.innerHTML = '';
                 for (const m of members) {
@@ -102,7 +103,7 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
                     nameEl.textContent = m.rsn;
                     if (isOwnTeam && m.approved_count > 0) {
                         nameEl.classList.add('lb-member-clickable');
-                        nameEl.addEventListener('click', () => openMemberModal(m, r.team_id || r.team_name, session));
+                        nameEl.addEventListener('click', () => openMemberModal(m, r.team_id || r.team_name, session, isAdmin));
                     }
 
                     const statsEl = document.createElement('span');
@@ -139,7 +140,7 @@ export function renderDayInfo() {
     }
 }
 
-async function openMemberModal(member, teamIdOrName, session) {
+async function openMemberModal(member, teamIdOrName, session, isAdmin = false) {
     const modal = document.getElementById('member-modal');
     const title = document.getElementById('member-modal-title');
     const body  = document.getElementById('member-modal-body');
@@ -152,7 +153,7 @@ async function openMemberModal(member, teamIdOrName, session) {
     // Resolve team_id if we only have a name
     let teamId = teamIdOrName;
     if (!teamId || typeof teamId === 'string') {
-        teamId = session.team_id;
+        teamId = isAdmin ? getViewTeamId() : session?.team_id;
     }
 
     const subs = await fetchMemberSubmissions(teamId, member.discord_id, member.rsn);
