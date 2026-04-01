@@ -13,6 +13,7 @@ export const DISCORD_REDIRECT  = window.location.origin + '/Bingo/callback.html'
 export const BINGO_START = new Date('2026-03-27T00:00:00+00:00');
 export const BINGO_END   = new Date('2026-04-10T23:59:59+00:00');
 export const TOTAL_DAYS  = 15;
+export const DOUBLE_POINTS_DAY = 7;
 
 /** Return the current bingo day (1-15), 0 if before start, 16 if after end.
  *  Days start at 04:00 UK time — hours before 4am count as the previous day. */

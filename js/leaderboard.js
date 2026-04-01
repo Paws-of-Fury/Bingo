@@ -2,7 +2,7 @@
  * Leaderboard rendering module.
  */
 
-import { currentDay, TOTAL_DAYS } from './config.js';
+import { currentDay, TOTAL_DAYS, DOUBLE_POINTS_DAY } from './config.js';
 import { fetchLeaderboard, fetchTeamDetails, fetchTeamTimeslots, fetchMemberSubmissions } from './supabase.js';
 import { getSession } from './auth.js';
 
@@ -131,6 +131,11 @@ export function renderDayInfo() {
         el.textContent = `Day ${day} of ${TOTAL_DAYS}`;
     } else {
         el.textContent = 'Event complete!';
+    }
+
+    if (day === DOUBLE_POINTS_DAY) {
+        const banner = document.getElementById('double-points-banner');
+        if (banner) banner.style.display = '';
     }
 }
 

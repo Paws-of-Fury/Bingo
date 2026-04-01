@@ -3,7 +3,7 @@
  * Fetches service_role key from bingo_config after passphrase validation.
  */
 
-import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS, DOUBLE_POINTS_DAY, currentDay } from './config.js';
 import { updateAuthUI } from './auth.js';
 
 const ADMIN_KEY = 'bingo_admin';
@@ -775,6 +775,22 @@ async function loadSubmissions(sb, filter) {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save';
             } else {
+                // Double points day: if approving and task now complete, set multiplier = 2
+                if (newStatus === 'approved' && currentDay() === DOUBLE_POINTS_DAY) {
+                    const reqPieces = s.bingo_tasks?.required_pieces || 1;
+                    const { count } = await sb
+                        .from('bingo_submissions')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('team_id', s.team_id)
+                        .eq('task_id', s.task_id)
+                        .eq('status', 'approved');
+                    if ((count || 0) >= reqPieces) {
+                        await sb.from('bingo_submissions')
+                            .update({ points_multiplier: 2.0 })
+                            .eq('team_id', s.team_id)
+                            .eq('task_id', s.task_id);
+                    }
+                }
                 const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
                 await loadSubmissions(sb, activeFilter);
             }

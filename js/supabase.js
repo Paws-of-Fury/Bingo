@@ -94,7 +94,8 @@ export async function fetchTeamDetails(teamIdOrName) {
         byDiscord[key].count += 1;
         const pts = s.bingo_tasks?.points || 0;
         const req = s.bingo_tasks?.required_pieces || 1;
-        byDiscord[key].points += pts / req;
+        const multiplier = s.points_multiplier || 1;
+        byDiscord[key].points += (pts / req) * multiplier;
     }
 
     return members.map(m => {
@@ -175,7 +176,7 @@ export async function fetchTeamSubmissions(teamId) {
     const sb = getClient();
     const { data, error } = await sb
         .from('bingo_submissions')
-        .select('task_id, status, pieces, piece_label')
+        .select('task_id, status, pieces, piece_label, points_multiplier')
         .eq('team_id', teamId);
     if (error) { console.error('fetchTeamSubmissions', error); return []; }
     return data;

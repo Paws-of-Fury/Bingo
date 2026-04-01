@@ -3,7 +3,7 @@
  * Renders all tasks for the given day as separate cards.
  */
 
-import { currentDay, dateForDay, tierInfo, TOTAL_DAYS } from './config.js';
+import { currentDay, dateForDay, tierInfo, TOTAL_DAYS, DOUBLE_POINTS_DAY } from './config.js';
 import { fetchTasksByDay, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
 import { updateAuthUI, getSession } from './auth.js';
 
@@ -66,6 +66,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         taskProgress = aggregateSubmissions(subs);
     }
 
+    // Show double points banner if this is day 7 and it's currently active
+    const isDoubleDay = dayNum === DOUBLE_POINTS_DAY && today === DOUBLE_POINTS_DAY;
+    const doubleEl = document.getElementById('double-points-banner');
+    if (doubleEl && isDoubleDay) doubleEl.style.display = '';
+
     // Sort by points (lowest → highest) and render each task
     tasks.sort((a, b) => a.points - b.points);
     for (const task of tasks) {
@@ -116,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <p class="task-description">${escapeHTML(task.description || '')}</p>
             ${itemsHTML}
             <div class="task-meta">
-                <span class="task-points">${task.points} points (${tier.label})${reqPieces > 1 ? ` — ${reqPieces} pieces required` : ''}</span>
+                <span class="task-points">${isDoubleDay ? `<span style="text-decoration:line-through;opacity:0.6;">${task.points}</span> <strong>${task.points * 2}</strong>` : task.points} points (${tier.label})${reqPieces > 1 ? ` — ${reqPieces} pieces required` : ''}${isDoubleDay ? ' 🎊 2×' : ''}</span>
                 <span class="task-date">${dateStr}</span>
             </div>
             ${submitHTML}
