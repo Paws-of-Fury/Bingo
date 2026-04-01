@@ -150,10 +150,16 @@ async function openMemberModal(member, teamIdOrName, session, isAdmin = false) {
     body.innerHTML = '<p class="text-muted" style="font-size:0.85rem;">Loading…</p>';
     modal.style.display = 'flex';
 
-    // Resolve team_id if we only have a name
+    // Resolve team_id — look it up by name if we only have a string
     let teamId = teamIdOrName;
     if (!teamId || typeof teamId === 'string') {
-        teamId = isAdmin ? getViewTeamId() : session?.team_id;
+        const sb = (await import('./supabase.js')).getClient();
+        const { data: t } = await sb
+            .from('bingo_teams')
+            .select('id')
+            .eq('name', teamIdOrName)
+            .maybeSingle();
+        teamId = t?.id || (isAdmin ? getViewTeamId() : session?.team_id);
     }
 
     const subs = await fetchMemberSubmissions(teamId, member.discord_id, member.rsn);
