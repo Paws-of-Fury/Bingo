@@ -109,12 +109,12 @@ async function injectTeamSwitcher(navLinks) {
         const opt = document.createElement('option');
         opt.value = t.id;
         opt.textContent = t.name;
-        if (t.id === currentId) opt.selected = true;
+        if (String(t.id) === String(currentId)) opt.selected = true;
         sel.appendChild(opt);
     }
 
     sel.addEventListener('change', () => {
-        const team = teams.find(t => t.id === sel.value);
+        const team = teams.find(t => String(t.id) === String(sel.value));
         if (team) {
             localStorage.setItem('bingo_admin_view_team', JSON.stringify({ id: team.id, name: team.name }));
             location.reload();
