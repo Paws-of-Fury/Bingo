@@ -114,15 +114,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }
 
+        const showDouble = isDoubleDay && !isComplete;
         card.innerHTML = `
             <div class="tier-badge ${tier.cls}">${tier.label}</div>
             ${statusBadge}
+            ${showDouble ? `<div class="double-pts-badge">🎊 2× Points</div>` : ''}
             ${task.image_url ? `<img class="task-image" src="${escapeAttr(task.image_url)}" alt="${escapeAttr(task.title)}">` : ''}
             <h3 class="task-title">${escapeHTML(task.title)}</h3>
             <p class="task-description">${escapeHTML(task.description || '')}</p>
             ${itemsHTML}
             <div class="task-meta">
-                <span class="task-points">${isDoubleDay ? `<span style="text-decoration:line-through;opacity:0.6;">${task.points}</span> <strong>${task.points * 2}</strong>` : task.points} points (${tier.label})${reqPieces > 1 ? ` — ${reqPieces} pieces required` : ''}${isDoubleDay ? ' 🎊 2×' : ''}</span>
+                <span class="task-points">${showDouble ? `<span style="text-decoration:line-through;opacity:0.5;">${task.points}</span> <strong style="color:#ffd700;">${task.points * 2}</strong>` : task.points} points (${tier.label})${reqPieces > 1 ? ` — ${reqPieces} pieces required` : ''}</span>
                 <span class="task-date">${dateStr}</span>
             </div>
             ${submitHTML}

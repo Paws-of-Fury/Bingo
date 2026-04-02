@@ -384,6 +384,21 @@
     gap: 1.5rem;
 }
 
+.double-pts-badge {
+    position: absolute;
+    top: 3rem;
+    right: 1rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,140,0,0.25));
+    border: 1px solid rgba(255,215,0,0.5);
+    color: #ffd700;
+    z-index: 5;
+    white-space: nowrap;
+}
+
 .task-status-badge {
     position: absolute;
     top: 1rem;
