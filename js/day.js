@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Show double points banner if this is day 7 and it's currently active
-    const isDoubleDay = dayNum === DOUBLE_POINTS_DAY && today === DOUBLE_POINTS_DAY;
+    const isDoubleDay = today === DOUBLE_POINTS_DAY;
     const doubleEl = document.getElementById('double-points-banner');
     if (doubleEl && isDoubleDay) doubleEl.style.display = '';
 
