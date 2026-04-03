@@ -39,14 +39,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (reqPieces > 1) infoText += ` — ${reqPieces} pieces required`;
             document.getElementById('submit-task-info').textContent = infoText;
 
-            // Show "what did you get?" field for multi-piece tasks
+            // Always show "what did you get?" label field
+            const piecesRow = document.getElementById('pieces-row');
+            const piecesLabel = document.getElementById('pieces-label');
+
             if (reqPieces > 1 && session?.team_id) {
                 const subs = await fetchTeamSubmissions(session.team_id);
                 const progress = aggregateSubmissions(subs);
                 const tp = progress[taskId] || { approved_pieces: 0, approved_labels: [], pending_labels: [] };
-
-                const piecesRow = document.getElementById('pieces-row');
-                const piecesLabel = document.getElementById('pieces-label');
 
                 // Status summary of what's already submitted
                 let statusHtml = `<strong>Progress: ${tp.approved_pieces}/${reqPieces} approved</strong>`;
@@ -58,21 +58,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     statusHtml += `<ul style="margin:4px 0 8px 16px">${items}</ul>`;
                 }
                 piecesLabel.innerHTML = statusHtml + 'What item are you submitting?';
-
-                // Replace number input with a text field
-                const oldInput = document.getElementById('pieces-input');
-                const textInput = document.createElement('input');
-                textInput.type = 'text';
-                textInput.id = 'pieces-input';
-                textInput.className = 'form-input';
-                textInput.placeholder = 'e.g. Royal Sight';
-                textInput.maxLength = 100;
-                textInput.required = true;
-                textInput.style.maxWidth = '300px';
-                oldInput.replaceWith(textInput);
-
-                piecesRow.style.display = '';
+            } else {
+                piecesLabel.textContent = 'What item are you submitting? (optional)';
             }
+
+            // Replace number input with a text field
+            const oldInput = document.getElementById('pieces-input');
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.id = 'pieces-input';
+            textInput.className = 'form-input';
+            textInput.placeholder = 'e.g. Royal Sight';
+            textInput.maxLength = 100;
+            if (reqPieces > 1) textInput.required = true;
+            textInput.style.maxWidth = '300px';
+            oldInput.replaceWith(textInput);
+
+            piecesRow.style.display = '';
         }
     }
 
@@ -162,9 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const taskId = parseInt(params.get('task'), 10) || null;
 
-            const pieceLabel = reqPieces > 1
-                ? (document.getElementById('pieces-input')?.value?.trim() || null)
-                : null;
+            const pieceLabel = document.getElementById('pieces-input')?.value?.trim() || null;
 
             const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-proof`, {
                 method: 'POST',
