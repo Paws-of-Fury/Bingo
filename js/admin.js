@@ -510,7 +510,7 @@ async function loadSubmissions(sb, filter) {
 
     let query = sb
         .from('bingo_submissions')
-        .select('*, bingo_teams(name, colour), bingo_tasks(title, day_number, points)')
+        .select('*, bingo_teams(name, colour), bingo_tasks(title, day_number, points, required_pieces)')
         .order('created_at', { ascending: false });
 
     if (filter && filter !== 'all') {
@@ -619,6 +619,13 @@ async function loadSubmissions(sb, filter) {
                         <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Submitted by</label>
                         <select class="sub-edit-submitter form-input" style="padding:6px 8px;font-size:13px;width:100%;">
                             <option value="">Loading members…</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Points multiplier</label>
+                        <select class="sub-edit-multiplier form-input" style="padding:6px 8px;font-size:13px;">
+                            <option value="1" ${(s.points_multiplier || 1) == 1 ? 'selected' : ''}>1× (normal)</option>
+                            <option value="2" ${(s.points_multiplier || 1) == 2 ? 'selected' : ''}>2× (double)</option>
                         </select>
                     </div>
                 </div>
@@ -756,12 +763,14 @@ async function loadSubmissions(sb, filter) {
 
             const submitterVal = row.querySelector('.sub-edit-submitter').value;
             const [newDiscordId, newRsn] = submitterVal.split('|');
+            const newMultiplier = parseFloat(row.querySelector('.sub-edit-multiplier').value) || 1;
             const updatePayload = {
                 status: newStatus,
                 piece_label: newLabel,
                 reviewed_at: new Date().toISOString(),
                 submitted_by_rsn: newRsn || null,
                 submitted_by_discord_id: newDiscordId || null,
+                points_multiplier: newMultiplier,
             };
 
             const { error } = await sb
