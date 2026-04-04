@@ -3,20 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paws of Fury Bingo</title>
+    <title>Admin — Paws of Fury Bingo</title>
     <link rel="icon" href="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=32">
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/animations.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        /* ── Admin shell ──────────────────────────────────── */
+        body { overflow-x: hidden; }
+
+        .admin-shell {
+            display: flex;
+            min-height: calc(100vh - var(--nav-height));
+        }
+
+        /* ── Sidebar ──────────────────────────────────────── */
+        .admin-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0 1rem;
+            position: sticky;
+            top: var(--nav-height);
+            height: calc(100vh - var(--nav-height));
+            overflow-y: auto;
+        }
+
+        .admin-sidebar-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 1.25rem 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            padding: 0.65rem 1.25rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: left;
+            border-left: 3px solid transparent;
+            transition: all 0.15s ease;
+        }
+
+        .admin-nav-item:hover {
+            background: rgba(255,255,255,0.04);
+            color: var(--text-primary);
+        }
+
+        .admin-nav-item.active {
+            color: var(--accent-gold);
+            border-left-color: var(--accent-gold);
+            background: rgba(255,215,0,0.06);
+            font-weight: 600;
+        }
+
+        .admin-nav-icon { font-size: 1rem; }
+
+        .admin-sidebar-footer {
+            margin-top: auto;
+            padding: 1rem 1.25rem 0;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* ── Main content area ────────────────────────────── */
+        .admin-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 860px;
+            overflow-x: hidden;
+        }
+
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+
+        .admin-section-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--accent-gold);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        /* ── Task cards ───────────────────────────────────── */
+        .admin-day-section { margin-bottom: 0.5rem; }
+
+        .admin-day-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 0.4rem;
+            transition: background 0.15s;
+        }
+
+        .admin-day-heading:hover { background: var(--bg-card-hover); }
+
+        .admin-day-heading .day-toggle { font-size: 0.75rem; color: var(--text-muted); }
+
+        .admin-day-tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-left: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .admin-task-card {
+            display: flex;
+            align-items: stretch;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.15s;
+        }
+
+        .admin-task-card:hover { border-color: rgba(255,255,255,0.12); }
+
+        .admin-task-tier-bar {
+            width: 4px;
+            flex-shrink: 0;
+        }
+
+        .admin-task-body {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            min-width: 0;
+        }
+
+        .admin-task-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .admin-task-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .tier-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .tier-badge-bronze { background: rgba(205,127,50,0.2); color: #cd7f32; }
+        .tier-badge-silver { background: rgba(192,192,192,0.15); color: #c0c0c0; }
+        .tier-badge-gold   { background: rgba(255,215,0,0.2); color: #ffd700; }
+
+        .admin-task-card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            padding: 0.6rem 0.75rem;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .admin-task-card-actions .btn {
+            padding: 0.3rem 0.75rem;
+            font-size: 0.78rem;
+        }
+
+        /* ── Task modal ───────────────────────────────────── */
+        .task-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: rgba(0,0,0,0.65);
+            align-items: flex-start;
+            justify-content: center;
+            padding: 3rem 1rem;
+            overflow-y: auto;
+        }
+
+        .task-modal-overlay.open { display: flex; }
+
+        .task-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 520px;
+            padding: 1.75rem;
+            position: relative;
+        }
+
+        .task-modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            color: var(--accent-gold);
+        }
+
+        .task-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .task-modal-close:hover { color: var(--text-primary); }
+
+        /* ── Add task button ──────────────────────────────── */
+        .add-task-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .tasks-search {
+            padding: 0.45rem 0.8rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            width: 200px;
+            font-family: inherit;
+        }
+
+        .tasks-search:focus { outline: none; border-color: rgba(255,215,0,0.3); }
+
+        /* ── Submissions section ──────────────────────────── */
+        .sub-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .sub-status-pills {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        .sub-status-pills .btn {
+            padding: 0.35rem 0.9rem;
+            font-size: 0.82rem;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <a href="index.html" class="nav-logo">
             <img class="logo-icon" src="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=128" alt=""> Paws of Fury Bingo
         </a>
-        <div class="nav-links">
+        <div class="nav-links" id="nav-links-container">
             <a href="info.html" class="nav-link">Info</a>
             <a href="leaderboard.html" class="nav-link">Leaderboard</a>
             <a href="https://discord.gg/paws-of-fury" target="_blank" rel="noopener" class="nav-link">Discord</a>
@@ -24,135 +304,171 @@
         </div>
     </nav>
 
-    <main class="container" style="max-width:800px;">
-        <!-- Admin login -->
+    <!-- Login card (shown when not authenticated) -->
+    <main class="container">
         <div id="admin-login" class="card card-center">
             <h2>Admin Access</h2>
-            <p class="text-muted" style="margin:1rem 0;">Enter the admin passphrase to manage tasks.</p>
+            <p class="text-muted" style="margin:1rem 0;">Enter the admin passphrase to manage the bingo event.</p>
             <input type="password" id="admin-pass-input" class="form-input" placeholder="Admin passphrase">
             <button id="admin-login-btn" class="btn btn-gold btn-full" style="margin-top:1rem;">Login as Admin</button>
             <p id="admin-login-error" class="text-muted" style="color:#e74c3c;margin-top:0.5rem;display:none;"></p>
         </div>
-
-        <!-- Admin panel (hidden until authenticated) -->
-        <div id="admin-panel" style="display:none;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-                <h1 class="page-title" style="font-size:1.6rem;">Task Manager</h1>
-                <button id="admin-logout-btn" class="btn btn-outline" style="font-size:0.8rem;">Logout Admin</button>
-            </div>
-
-            <!-- Add task form -->
-            <div class="card" style="margin-bottom:2rem;">
-                <h3 style="margin-bottom:1rem;">Add / Edit Task</h3>
-                <input type="hidden" id="edit-task-id" value="">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Day (1–15)</label>
-                        <input type="number" id="task-day" class="form-input" min="1" max="15" placeholder="1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Points</label>
-                        <input type="number" id="task-points" class="form-input" min="1" placeholder="1" value="1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Required Pieces</label>
-                        <input type="number" id="task-pieces" class="form-input" min="1" placeholder="1" value="1">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Title</label>
-                    <input type="text" id="task-title" class="form-input" placeholder="e.g. 2 Nex drops">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Description (optional)</label>
-                    <textarea id="task-desc" class="form-input form-textarea" rows="3" placeholder="Details..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Image URL (optional)</label>
-                    <input type="text" id="task-image" class="form-input" placeholder="https://...">
-                </div>
-                <div style="display:flex;gap:0.5rem;">
-                    <button id="task-save-btn" class="btn btn-gold">Add Task</button>
-                    <button id="task-cancel-btn" class="btn btn-outline" style="display:none;">Cancel Edit</button>
-                </div>
-                <p id="task-save-status" class="text-muted" style="margin-top:0.5rem;"></p>
-            </div>
-
-            <!-- Existing tasks -->
-            <h3 style="margin-bottom:1rem;">Existing Tasks</h3>
-            <div id="tasks-list"></div>
-
-            <!-- Submissions review -->
-            <div style="margin-top:2.5rem;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-                    <h3>Submissions</h3>
-                    <button id="add-sub-toggle-btn" class="btn btn-outline" style="font-size:0.8rem;">+ Add Submission</button>
-                </div>
-
-                <!-- Manual add submission form -->
-                <div id="add-sub-form" class="card" style="display:none;margin-bottom:1.25rem;padding:1rem;">
-                    <h4 style="margin-bottom:0.75rem;font-size:0.95rem;color:var(--accent-gold);">Add Manual Submission</h4>
-                    <div class="form-row" style="flex-wrap:wrap;">
-                        <div class="form-group">
-                            <label class="form-label">Team</label>
-                            <select id="add-sub-team" class="form-input"></select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Task</label>
-                            <select id="add-sub-task" class="form-input"></select>
-                        </div>
-                    </div>
-                    <div class="form-row" style="flex-wrap:wrap;">
-                        <div class="form-group">
-                            <label class="form-label">Submitted by</label>
-                            <select id="add-sub-submitter" class="form-input">
-                                <option value="">Select a team first</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Status</label>
-                            <select id="add-sub-status" class="form-input">
-                                <option value="approved">Approved</option>
-                                <option value="pending">Pending</option>
-                                <option value="denied">Denied</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Items submitted (optional)</label>
-                        <div id="add-sub-items-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
-                        <button id="add-sub-add-item-btn" class="btn btn-outline" style="font-size:12px;padding:4px 10px;">+ Add item</button>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Image URLs (optional)</label>
-                        <div id="add-sub-urls-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
-                        <button id="add-sub-add-url-btn" class="btn btn-outline" style="font-size:12px;padding:4px 10px;">+ Add image URL</button>
-                    </div>
-                    <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-                        <button id="add-sub-save-btn" class="btn btn-gold">Save Submission</button>
-                        <button id="add-sub-cancel-btn" class="btn btn-outline">Cancel</button>
-                    </div>
-                    <p id="add-sub-status-msg" style="margin-top:0.4rem;font-size:12px;"></p>
-                </div>
-
-                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:1rem;">
-                    <div style="display:flex;gap:0.5rem;">
-                        <button id="filter-pending" class="btn btn-outline filter-btn active" data-filter="pending">Pending</button>
-                        <button id="filter-approved" class="btn btn-outline filter-btn" data-filter="approved">Approved</button>
-                        <button id="filter-denied" class="btn btn-outline filter-btn" data-filter="denied">Denied</button>
-                        <button id="filter-all" class="btn btn-outline filter-btn" data-filter="all">All</button>
-                    </div>
-                    <select id="filter-team" class="form-input" style="padding:6px 8px;font-size:13px;max-width:180px;">
-                        <option value="">All teams</option>
-                    </select>
-                    <select id="filter-task" class="form-input" style="padding:6px 8px;font-size:13px;max-width:220px;">
-                        <option value="">All tasks</option>
-                    </select>
-                </div>
-                <div id="submissions-list"></div>
-            </div>
-        </div>
     </main>
+
+    <!-- Admin panel (shown once authenticated) -->
+    <div id="admin-panel" style="display:none;">
+        <div class="admin-shell">
+
+            <!-- Sidebar -->
+            <aside class="admin-sidebar">
+                <div class="admin-sidebar-title">Admin Panel</div>
+                <nav>
+                    <button class="admin-nav-item active" data-section="tasks">
+                        <span class="admin-nav-icon">📋</span> Tasks
+                    </button>
+                    <button class="admin-nav-item" data-section="submissions">
+                        <span class="admin-nav-icon">📥</span> Submissions
+                    </button>
+                </nav>
+                <div class="admin-sidebar-footer">
+                    <button id="admin-logout-btn" class="btn btn-outline btn-full" style="font-size:0.8rem;">Logout</button>
+                </div>
+            </aside>
+
+            <!-- Content -->
+            <div class="admin-content">
+
+                <!-- ── Tasks section ── -->
+                <div id="section-tasks" class="admin-section active">
+                    <div class="admin-section-title">📋 Task Manager</div>
+
+                    <div class="add-task-bar">
+                        <input type="text" id="tasks-search" class="tasks-search" placeholder="Search tasks…">
+                        <button id="open-add-task-btn" class="btn btn-gold">+ Add Task</button>
+                    </div>
+
+                    <div id="tasks-list">
+                        <p class="text-muted">Loading…</p>
+                    </div>
+                </div>
+
+                <!-- ── Submissions section ── -->
+                <div id="section-submissions" class="admin-section">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+                        <div class="admin-section-title" style="margin-bottom:0;">📥 Submissions</div>
+                        <button id="add-sub-toggle-btn" class="btn btn-outline" style="font-size:0.82rem;">+ Add Manual</button>
+                    </div>
+
+                    <!-- Manual add submission form -->
+                    <div id="add-sub-form" class="card" style="display:none;margin-bottom:1.25rem;padding:1.25rem;">
+                        <h4 style="margin-bottom:0.75rem;font-size:0.95rem;color:var(--accent-gold);">Add Manual Submission</h4>
+                        <div class="form-row" style="flex-wrap:wrap;">
+                            <div class="form-group">
+                                <label class="form-label">Team</label>
+                                <select id="add-sub-team" class="form-input"></select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Task</label>
+                                <select id="add-sub-task" class="form-input"></select>
+                            </div>
+                        </div>
+                        <div class="form-row" style="flex-wrap:wrap;">
+                            <div class="form-group">
+                                <label class="form-label">Submitted by</label>
+                                <select id="add-sub-submitter" class="form-input">
+                                    <option value="">Select a team first</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Status</label>
+                                <select id="add-sub-status" class="form-input">
+                                    <option value="approved">Approved</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="denied">Denied</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Items submitted (optional)</label>
+                            <div id="add-sub-items-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
+                            <button id="add-sub-add-item-btn" class="btn btn-outline" style="font-size:12px;padding:4px 10px;">+ Add item</button>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Image URLs (optional)</label>
+                            <div id="add-sub-urls-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
+                            <button id="add-sub-add-url-btn" class="btn btn-outline" style="font-size:12px;padding:4px 10px;">+ Add image URL</button>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                            <button id="add-sub-save-btn" class="btn btn-gold">Save Submission</button>
+                            <button id="add-sub-cancel-btn" class="btn btn-outline">Cancel</button>
+                        </div>
+                        <p id="add-sub-status-msg" style="margin-top:0.4rem;font-size:12px;"></p>
+                    </div>
+
+                    <!-- Filter toolbar -->
+                    <div class="sub-toolbar">
+                        <div class="sub-status-pills">
+                            <button id="filter-pending" class="btn btn-outline filter-btn active" data-filter="pending">Pending</button>
+                            <button id="filter-approved" class="btn btn-outline filter-btn" data-filter="approved">Approved</button>
+                            <button id="filter-denied" class="btn btn-outline filter-btn" data-filter="denied">Denied</button>
+                            <button id="filter-all" class="btn btn-outline filter-btn" data-filter="all">All</button>
+                        </div>
+                        <select id="filter-team" class="form-input" style="padding:6px 8px;font-size:13px;max-width:180px;">
+                            <option value="">All teams</option>
+                        </select>
+                        <select id="filter-task" class="form-input" style="padding:6px 8px;font-size:13px;max-width:220px;">
+                            <option value="">All tasks</option>
+                        </select>
+                    </div>
+
+                    <div id="submissions-list"></div>
+                </div>
+
+            </div><!-- /admin-content -->
+        </div><!-- /admin-shell -->
+    </div><!-- /admin-panel -->
+
+    <!-- Task add/edit modal -->
+    <div id="task-modal-overlay" class="task-modal-overlay">
+        <div class="task-modal">
+            <button class="task-modal-close" id="task-modal-close-btn">×</button>
+            <div id="task-modal-title" class="task-modal-title">Add Task</div>
+
+            <input type="hidden" id="edit-task-id" value="">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Day (1–15)</label>
+                    <input type="number" id="task-day" class="form-input" min="1" max="15" placeholder="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Points</label>
+                    <input type="number" id="task-points" class="form-input" min="1" placeholder="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pieces</label>
+                    <input type="number" id="task-pieces" class="form-input" min="1" placeholder="1" value="1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Title</label>
+                <input type="text" id="task-title" class="form-input" placeholder="e.g. 2 Nex drops">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description (optional)</label>
+                <textarea id="task-desc" class="form-input form-textarea" rows="3" placeholder="Details…"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Image URL (optional)</label>
+                <input type="text" id="task-image" class="form-input" placeholder="https://…">
+            </div>
+            <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+                <button id="task-save-btn" class="btn btn-gold">Add Task</button>
+                <button id="task-cancel-btn" class="btn btn-outline" style="display:none;">Cancel Edit</button>
+            </div>
+            <p id="task-save-status" class="text-muted" style="margin-top:0.5rem;font-size:0.85rem;"></p>
+        </div>
+    </div>
 
     <footer class="footer">
         <p>&copy; 2026 Paws of Fury</p>

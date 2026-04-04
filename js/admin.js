@@ -60,7 +60,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loginError = document.getElementById('admin-login-error');
     const logoutBtn = document.getElementById('admin-logout-btn');
 
-    // Check if already logged in as admin
+    // ── Sidebar navigation ───────────────────────────────────
+    document.querySelectorAll('.admin-nav-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`section-${btn.dataset.section}`)?.classList.add('active');
+        });
+    });
+
+    // ── Task modal open/close ────────────────────────────────
+    const taskModalOverlay = document.getElementById('task-modal-overlay');
+
+    document.getElementById('open-add-task-btn')?.addEventListener('click', () => {
+        clearForm();
+        document.getElementById('task-modal-title').textContent = 'Add Task';
+        taskModalOverlay.classList.add('open');
+    });
+
+    document.getElementById('task-modal-close-btn')?.addEventListener('click', () => {
+        taskModalOverlay.classList.remove('open');
+        clearForm();
+    });
+
+    taskModalOverlay?.addEventListener('click', (e) => {
+        if (e.target === taskModalOverlay) {
+            taskModalOverlay.classList.remove('open');
+            clearForm();
+        }
+    });
+
+    // ── Check if already logged in ───────────────────────────
     const savedPass = getAdminPass();
     if (savedPass) {
         const valid = await validateAdmin(savedPass);
@@ -91,7 +122,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginBtn.textContent = 'Login as Admin';
     });
 
-    // Enter key on input
     passInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') loginBtn.click();
     });
@@ -108,7 +138,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginSection.style.display = 'none';
         panel.style.display = '';
 
-        // Fetch service key from DB
         const serviceKey = await fetchServiceKey(pass);
         if (!serviceKey) {
             loginError.textContent = 'Failed to fetch service key.';
@@ -225,6 +254,7 @@ function clearForm() {
     document.getElementById('task-save-btn').textContent = 'Add Task';
     document.getElementById('task-cancel-btn').style.display = 'none';
     document.getElementById('task-save-status').textContent = '';
+    document.getElementById('task-modal-overlay').classList.remove('open');
 }
 
 function populateForm(task) {
@@ -238,7 +268,8 @@ function populateForm(task) {
     document.getElementById('task-save-btn').textContent = 'Update Task';
     document.getElementById('task-cancel-btn').style.display = '';
     document.getElementById('task-save-status').textContent = '';
-    document.getElementById('task-day').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('task-modal-title').textContent = `Edit: ${task.title}`;
+    document.getElementById('task-modal-overlay').classList.add('open');
 }
 
 async function loadAddSubmMembers(sb, teamSel, submSel) {
@@ -391,7 +422,7 @@ function initAddSubmissionForm(sb) {
     });
 }
 
-/** Load and render all tasks grouped by day. */
+/** Load and render all tasks grouped by day with card UI. */
 async function loadTasks(sb) {
     const container = document.getElementById('tasks-list');
     container.innerHTML = '<p class="text-muted">Loading…</p>';
@@ -401,7 +432,7 @@ async function loadTasks(sb) {
         .select('*')
         .eq('active', true)
         .order('day_number')
-        .order('id');
+        .order('points');
 
     if (error) {
         container.innerHTML = '<p style="color:#e74c3c;">Failed to load tasks.</p>';
@@ -410,69 +441,98 @@ async function loadTasks(sb) {
     }
 
     if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<p class="text-muted">No tasks yet. Add one above.</p>';
+        container.innerHTML = '<p class="text-muted">No tasks yet. Click "+ Add Task" to create one.</p>';
         return;
     }
 
     // Group by day
     const byDay = {};
     for (const t of tasks) {
-        if (!byDay[t.day_number]) byDay[t.day_number] = [];
-        byDay[t.day_number].push(t);
+        (byDay[t.day_number] ||= []).push(t);
     }
 
     container.innerHTML = '';
 
-    const allDays = new Set();
-    for (let d = 1; d <= TOTAL_DAYS; d++) allDays.add(d);
-    for (const d of Object.keys(byDay)) allDays.add(parseInt(d, 10));
-    const sortedDays = [...allDays].sort((a, b) => a - b);
+    const sortedDays = Object.keys(byDay).map(Number).sort((a, b) => a - b);
 
     for (const d of sortedDays) {
         const dayTasks = byDay[d];
-        if (!dayTasks) continue;
-
         const label = d > TOTAL_DAYS ? `Day ${d} (TEST)` : `Day ${d}`;
+
         const section = document.createElement('div');
         section.className = 'admin-day-section';
-        section.innerHTML = `<h4 class="admin-day-heading">${label} (${dayTasks.length} task${dayTasks.length > 1 ? 's' : ''})</h4>`;
+
+        const heading = document.createElement('div');
+        heading.className = 'admin-day-heading';
+        heading.innerHTML = `
+            <span>${label} <span style="color:var(--text-muted);font-weight:400;">${dayTasks.length} task${dayTasks.length !== 1 ? 's' : ''}</span></span>
+            <span class="day-toggle">▾</span>
+        `;
+
+        const taskList = document.createElement('div');
+        taskList.className = 'admin-day-tasks';
+
+        heading.addEventListener('click', () => {
+            const collapsed = taskList.style.display === 'none';
+            taskList.style.display = collapsed ? '' : 'none';
+            heading.querySelector('.day-toggle').textContent = collapsed ? '▾' : '▸';
+        });
 
         for (const t of dayTasks) {
             const tier = t.points >= 6 ? 'Gold' : t.points >= 3 ? 'Silver' : 'Bronze';
+            const tierColour = { Gold: '#ffd700', Silver: '#c0c0c0', Bronze: '#cd7f32' }[tier];
             const reqPcs = t.required_pieces || 1;
-            const pcsLabel = reqPcs > 1 ? ` × ${reqPcs} pieces` : '';
-            const row = document.createElement('div');
-            row.className = 'admin-task-row';
-            row.innerHTML = `
-                <div class="admin-task-info">
-                    <span class="admin-task-title">${escapeHTML(t.title)}</span>
-                    <span class="admin-task-pts">${t.points} pts (${tier})${pcsLabel}</span>
+
+            const card = document.createElement('div');
+            card.className = 'admin-task-card';
+            card.dataset.title = t.title.toLowerCase();
+            card.dataset.day = d;
+            card.innerHTML = `
+                <div class="admin-task-tier-bar" style="background:${tierColour};"></div>
+                <div class="admin-task-body">
+                    <div class="admin-task-name">${escapeHTML(t.title)}</div>
+                    <div class="admin-task-meta">
+                        <span class="tier-badge tier-badge-${tier.toLowerCase()}">${tier}</span>
+                        <span>${t.points} pts</span>
+                        ${reqPcs > 1 ? `<span>× ${reqPcs} pieces</span>` : ''}
+                        ${t.description ? `<span style="color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHTML(t.description)}</span>` : ''}
+                    </div>
                 </div>
-                <div class="admin-task-actions">
-                    <button class="btn btn-outline admin-edit-btn" data-id="${t.id}">Edit</button>
-                    <button class="btn btn-outline admin-delete-btn" data-id="${t.id}" style="border-color:#e74c3c;color:#e74c3c;">Delete</button>
+                <div class="admin-task-card-actions">
+                    <button class="btn btn-outline admin-edit-btn">Edit</button>
+                    <button class="btn btn-outline admin-delete-btn" style="border-color:#e74c3c;color:#e74c3c;">Delete</button>
                 </div>
             `;
-            section.appendChild(row);
+            taskList.appendChild(card);
 
-            row.querySelector('.admin-edit-btn').addEventListener('click', () => {
-                populateForm(t);
-            });
+            card.querySelector('.admin-edit-btn').addEventListener('click', () => populateForm(t));
 
-            row.querySelector('.admin-delete-btn').addEventListener('click', async () => {
+            card.querySelector('.admin-delete-btn').addEventListener('click', async () => {
                 if (!confirm(`Delete "${t.title}"?`)) return;
                 const { error } = await sb.from('bingo_tasks').delete().eq('id', t.id);
                 if (error) {
                     alert('Delete failed: ' + error.message);
                 } else {
                     await loadTasks(sb);
-                    const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';
-                    await loadSubmissions(sb, activeFilter);
                 }
             });
         }
 
+        section.appendChild(heading);
+        section.appendChild(taskList);
         container.appendChild(section);
+    }
+
+    // Wire up search
+    const searchInput = document.getElementById('tasks-search');
+    if (searchInput) {
+        searchInput.oninput = () => {
+            const q = searchInput.value.toLowerCase();
+            document.querySelectorAll('.admin-task-card').forEach(card => {
+                const match = !q || card.dataset.title.includes(q);
+                card.style.display = match ? '' : 'none';
+            });
+        };
     }
 }
 
