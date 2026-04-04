@@ -18,11 +18,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         else dayInfoEl.textContent = 'Event complete!';
     }
 
-    const data = await fetchBossBattle();
     const container = document.getElementById('boss-battle-container');
+    let data = null;
+    try {
+        data = await fetchBossBattle();
+    } catch (err) {
+        console.error('boss-battle error', err);
+        container.innerHTML = `<p class="text-muted text-center">Failed to load: ${err.message}</p>`;
+        return;
+    }
 
     if (!data) {
-        container.innerHTML = '<p class="text-muted text-center">No data available.</p>';
+        container.innerHTML = '<p class="text-muted text-center">No data available yet.</p>';
         return;
     }
 

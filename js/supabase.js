@@ -177,30 +177,41 @@ export async function checkMembership(teamId, discordId) {
  */
 export async function fetchBossBattle() {
     const sb = getClient();
-    const { data, error } = await sb.rpc('bingo_leaderboard');
-    if (error) { console.error('fetchBossBattle', error); return null; }
-    if (!data?.length) return null;
 
-    // Fetch team ID 4's name
-    const { data: bossTeam } = await sb
-        .from('bingo_teams')
-        .select('id, name, colour')
-        .eq('id', 4)
-        .maybeSingle();
+    const [lbResult, teamsResult] = await Promise.all([
+        sb.rpc('bingo_leaderboard'),
+        sb.from('bingo_teams').select('id, name, colour'),
+    ]);
 
+    if (lbResult.error) { console.error('fetchBossBattle lb', lbResult.error); return null; }
+    if (teamsResult.error) { console.error('fetchBossBattle teams', teamsResult.error); return null; }
+
+    const rows = lbResult.data || [];
+    const teams = teamsResult.data || [];
+    if (!rows.length) return null;
+
+    const bossTeam = teams.find(t => t.id === 4);
     if (!bossTeam) return null;
 
-    const bossRow = data.find(r => r.team_name === bossTeam.name);
+    // Build colour lookup from bingo_teams (leaderboard RPC may not always have colour)
+    const colourMap = {};
+    for (const t of teams) colourMap[t.name] = t.colour;
+
+    const bossRow = rows.find(r => r.team_name === bossTeam.name);
     const bossPoints = parseFloat(bossRow?.total_points || 0);
 
-    const others = data.filter(r => r.team_name !== bossTeam.name);
+    const others = rows.filter(r => r.team_name !== bossTeam.name);
     const challengerPoints = others.reduce((sum, r) => sum + parseFloat(r.total_points || 0), 0);
 
     return {
         boss: { name: bossTeam.name, colour: bossTeam.colour || '#e94560', points: bossPoints },
         challenger: {
             points: challengerPoints,
-            teams: others.map(r => ({ name: r.team_name, colour: r.team_colour || '#5865f2', points: parseFloat(r.total_points || 0) })),
+            teams: others.map(r => ({
+                name: r.team_name,
+                colour: colourMap[r.team_name] || r.team_colour || '#5865f2',
+                points: parseFloat(r.total_points || 0),
+            })),
         },
     };
 }
