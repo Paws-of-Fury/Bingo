@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boss Battle — Paws of Fury Bingo</title>
+    <link rel="icon" href="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=32">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        /* ── Boss Battle Arena ─────────────────────────────── */
+        .bb-arena {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .bb-vs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .bb-team-label {
+            flex: 1;
+            text-align: center;
+        }
+
+        .bb-boss-label { text-align: left; }
+        .bb-chall-label { text-align: right; }
+
+        .bb-crown {
+            font-size: 1.8rem;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .bb-team-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+        }
+
+        .bb-team-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .bb-vs-badge {
+            flex: 0 0 auto;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--accent-fire);
+            text-shadow: 0 0 20px rgba(255, 69, 0, 0.6);
+            letter-spacing: 0.05em;
+        }
+
+        /* Scores */
+        .bb-scores {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .bb-score {
+            font-size: 2.5rem;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .bb-score-leading {
+            opacity: 1;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .bb-score-boss { color: #e94560; }
+        .bb-score-chall { color: #a78bfa; }
+
+        .bb-pts-label {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .bb-score-divider {
+            color: var(--text-muted);
+            font-size: 1.5rem;
+        }
+
+        /* Progress bar */
+        .bb-bar-container {
+            display: flex;
+            height: 28px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border-subtle);
+            margin-bottom: 0.4rem;
+        }
+
+        .bb-bar-boss, .bb-bar-chall {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .bb-bar-pct {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: rgba(0,0,0,0.7);
+            white-space: nowrap;
+        }
+
+        .bb-bar-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Status message */
+        .bb-status {
+            text-align: center;
+            font-size: 0.95rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 0.85rem 1.25rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        /* Breakdown */
+        .bb-breakdown {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .bb-breakdown-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 1rem;
+        }
+
+        .bb-team-row {
+            display: grid;
+            grid-template-columns: 140px 1fr 70px;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.65rem;
+        }
+
+        .bb-team-row:last-child { margin-bottom: 0; }
+
+        .bb-team-row-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bb-team-row-bar-wrap {
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .bb-team-row-bar {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s ease;
+        }
+
+        .bb-team-row-pts {
+            text-align: right;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <img class="logo-icon" src="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=128" alt=""> Paws of Fury Bingo
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Tasks</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="info.html" class="nav-link">Info</a>
+            <a href="https://discord.gg/paws-of-fury" target="_blank" rel="noopener" class="nav-link">Discord</a>
+            <button id="auth-btn" class="btn btn-outline" onclick="window.bingoAuth?.toggleLogin()">Login</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1 class="page-title">⚔️ Boss Battle</h1>
+        <p id="day-info" class="text-muted text-center" style="margin-bottom:1.5rem;"></p>
+
+        <div id="boss-battle-container">
+            <p class="text-muted text-center">Loading…</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Paws of Fury</p>
+    </footer>
+
+    <script type="module" src="js/boss-battle.js"></script>
+</body>
+</html>
