@@ -3,7 +3,7 @@
  * Fetches service_role key from bingo_config after passphrase validation.
  */
 
-import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS, DOUBLE_POINTS_DAY, currentDay } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS, DOUBLE_POINTS_DAY, currentDay, dateForDay } from './config.js';
 import { updateAuthUI } from './auth.js';
 
 const ADMIN_KEY = 'bingo_admin';
@@ -466,7 +466,11 @@ async function loadTasks(sb) {
 
     for (const d of sortedDays) {
         const dayTasks = byDay[d];
-        const label = d > TOTAL_DAYS ? `Day ${d} (TEST)` : `Day ${d}`;
+        const isTest = d > TOTAL_DAYS;
+        const label = isTest ? `Day ${d} (TEST)` : `Day ${d}`;
+        const dateStr = !isTest
+            ? dateForDay(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+            : '';
 
         const section = document.createElement('div');
         section.className = 'admin-day-section';
@@ -474,7 +478,11 @@ async function loadTasks(sb) {
         const heading = document.createElement('div');
         heading.className = 'admin-day-heading';
         heading.innerHTML = `
-            <span>${label} <span style="color:var(--text-muted);font-weight:400;">${dayTasks.length} task${dayTasks.length !== 1 ? 's' : ''}</span></span>
+            <span>
+                ${label}
+                ${dateStr ? `<span style="color:var(--accent-gold);font-weight:500;margin-left:0.4rem;">${dateStr}</span>` : ''}
+                <span style="color:var(--text-muted);font-weight:400;margin-left:0.4rem;">${dayTasks.length} task${dayTasks.length !== 1 ? 's' : ''}</span>
+            </span>
             <span class="day-toggle">▾</span>
         `;
 
