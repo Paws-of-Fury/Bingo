@@ -154,6 +154,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initAdmin(serviceKey) {
     const sb = getAdminClient(serviceKey);
 
+    // Day info
+    const day = currentDay();
+    const dayInfoEl = document.getElementById('admin-day-info');
+    if (dayInfoEl) {
+        if (day < 1) dayInfoEl.textContent = 'Event not started';
+        else if (day <= TOTAL_DAYS) dayInfoEl.textContent = `Day ${day} of ${TOTAL_DAYS}`;
+        else dayInfoEl.textContent = 'Event complete';
+    }
+
     const saveBtn = document.getElementById('task-save-btn');
     const cancelBtn = document.getElementById('task-cancel-btn');
     const editIdField = document.getElementById('edit-task-id');

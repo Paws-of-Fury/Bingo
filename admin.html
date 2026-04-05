@@ -343,7 +343,10 @@
 
                 <!-- ── Tasks section ── -->
                 <div id="section-tasks" class="admin-section active">
-                    <div class="admin-section-title">📋 Task Manager</div>
+                    <div style="display:flex;align-items:baseline;gap:1rem;margin-bottom:1.5rem;">
+                        <div class="admin-section-title" style="margin-bottom:0;">📋 Task Manager</div>
+                        <span id="admin-day-info" style="font-size:0.85rem;color:var(--text-muted);"></span>
+                    </div>
 
                     <div class="add-task-bar">
                         <input type="text" id="tasks-search" class="tasks-search" placeholder="Search tasks…">
