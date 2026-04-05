@@ -304,19 +304,22 @@
         </div>
     </nav>
 
-    <!-- Login card (shown when not authenticated) -->
-    <main class="container">
-        <div id="admin-login" class="card card-center">
-            <h2>Admin Access</h2>
-            <p class="text-muted" style="margin:1rem 0;">Enter the admin passphrase to manage the bingo event.</p>
-            <input type="password" id="admin-pass-input" class="form-input" placeholder="Admin passphrase">
-            <button id="admin-login-btn" class="btn btn-gold btn-full" style="margin-top:1rem;">Login as Admin</button>
-            <p id="admin-login-error" class="text-muted" style="color:#e74c3c;margin-top:0.5rem;display:none;"></p>
-        </div>
-    </main>
+    <!-- Wraps both login and admin panel so no phantom spacing -->
+    <div id="admin-panel">
 
-    <!-- Admin panel (shown once authenticated) -->
-    <div id="admin-panel" style="display:none;">
+        <!-- Login card -->
+        <div id="admin-login" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - var(--nav-height));padding:2rem;">
+            <div class="card" style="max-width:400px;width:100%;text-align:center;padding:2rem;">
+                <h2>Admin Access</h2>
+                <p class="text-muted" style="margin:1rem 0;">Enter the admin passphrase to manage the bingo event.</p>
+                <input type="password" id="admin-pass-input" class="form-input" placeholder="Admin passphrase">
+                <button id="admin-login-btn" class="btn btn-gold btn-full" style="margin-top:1rem;">Login as Admin</button>
+                <p id="admin-login-error" class="text-muted" style="color:#e74c3c;margin-top:0.5rem;display:none;"></p>
+            </div>
+        </div>
+
+        <!-- Admin shell (hidden until authenticated) -->
+        <div id="admin-shell" style="display:none;">
         <div class="admin-shell">
 
             <!-- Sidebar -->
@@ -354,9 +357,10 @@
 
                 <!-- ── Submissions section ── -->
                 <div id="section-submissions" class="admin-section">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
-                        <div class="admin-section-title" style="margin-bottom:0;">📥 Submissions</div>
-                        <button id="add-sub-toggle-btn" class="btn btn-outline" style="font-size:0.82rem;">+ Add Manual</button>
+                    <div class="admin-section-title">📥 Submissions</div>
+                    <div class="add-task-bar" style="margin-bottom:1rem;">
+                        <div></div>
+                        <button id="add-sub-toggle-btn" class="btn btn-gold">+ Add Manual</button>
                     </div>
 
                     <!-- Manual add submission form -->
@@ -468,7 +472,8 @@
             </div>
             <p id="task-save-status" class="text-muted" style="margin-top:0.5rem;font-size:0.85rem;"></p>
         </div>
-    </div>
+    </div><!-- /admin-shell wrapper -->
+    </div><!-- /admin-panel -->
 
     <footer class="footer">
         <p>&copy; 2026 Paws of Fury</p>

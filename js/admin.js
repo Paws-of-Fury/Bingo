@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateAuthUI();
 
     const loginSection = document.getElementById('admin-login');
-    const panel = document.getElementById('admin-panel');
+    const panel = document.getElementById('admin-shell');
     const passInput = document.getElementById('admin-pass-input');
     const loginBtn = document.getElementById('admin-login-btn');
     const loginError = document.getElementById('admin-login-error');
