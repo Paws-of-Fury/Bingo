@@ -504,16 +504,22 @@ async function loadTasks(sb) {
             card.className = 'admin-task-card';
             card.dataset.title = t.title.toLowerCase();
             card.dataset.day = d;
+            card.style.borderColor = tierColour + '55';
+
+            const imgHTML = t.image_url
+                ? `<img class="admin-task-img" src="${escapeHTML(t.image_url)}" alt="" loading="lazy">`
+                : `<div class="admin-task-img-placeholder">🖼️</div>`;
+
             card.innerHTML = `
-                <div class="admin-task-tier-bar" style="background:${tierColour};"></div>
+                ${imgHTML}
                 <div class="admin-task-body">
                     <div class="admin-task-name">${escapeHTML(t.title)}</div>
                     <div class="admin-task-meta">
                         <span class="tier-badge tier-badge-${tier.toLowerCase()}">${tier}</span>
                         <span>${t.points} pts</span>
-                        ${reqPcs > 1 ? `<span>× ${reqPcs} pieces</span>` : ''}
-                        ${t.description ? `<span style="color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHTML(t.description)}</span>` : ''}
+                        ${reqPcs > 1 ? `<span>× ${reqPcs} pcs</span>` : ''}
                     </div>
+                    ${t.description ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHTML(t.description)}</div>` : ''}
                 </div>
                 <div class="admin-task-card-actions">
                     <button class="btn btn-outline admin-edit-btn">Edit</button>

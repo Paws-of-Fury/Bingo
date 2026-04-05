@@ -103,14 +103,14 @@
             gap: 0.6rem;
         }
 
-        /* ── Task cards ───────────────────────────────────── */
-        .admin-day-section { margin-bottom: 0.5rem; }
+        /* ── Task cards grid ──────────────────────────────── */
+        .admin-day-section { margin-bottom: 1.5rem; }
 
         .admin-day-heading {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.6rem 1rem;
+            padding: 0.55rem 1rem;
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
             border-radius: 8px;
@@ -119,65 +119,83 @@
             color: var(--text-secondary);
             cursor: pointer;
             user-select: none;
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.75rem;
             transition: background 0.15s;
         }
 
         .admin-day-heading:hover { background: var(--bg-card-hover); }
-
         .admin-day-heading .day-toggle { font-size: 0.75rem; color: var(--text-muted); }
 
         .admin-day-tasks {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            padding-left: 0.5rem;
-            margin-bottom: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
         }
+
+        @media (max-width: 900px) { .admin-day-tasks { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .admin-day-tasks { grid-template-columns: 1fr; } }
 
         .admin-task-card {
             display: flex;
-            align-items: stretch;
+            flex-direction: column;
             background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
+            border: 2px solid var(--border-subtle);
+            border-radius: 10px;
             overflow: hidden;
-            transition: border-color 0.15s;
+            transition: border-color 0.15s, transform 0.15s;
+            position: relative;
         }
 
-        .admin-task-card:hover { border-color: rgba(255,255,255,0.12); }
+        .admin-task-card:hover {
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
 
-        .admin-task-tier-bar {
-            width: 4px;
-            flex-shrink: 0;
+        .admin-task-img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            background: var(--bg-secondary);
+            display: block;
+        }
+
+        .admin-task-img-placeholder {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 2rem;
         }
 
         .admin-task-body {
             flex: 1;
-            padding: 0.75rem 1rem;
+            padding: 0.7rem 0.85rem 0.5rem;
             min-width: 0;
         }
 
         .admin-task-name {
-            font-weight: 600;
-            font-size: 0.95rem;
+            font-weight: 700;
+            font-size: 0.9rem;
             color: var(--text-primary);
-            margin-bottom: 0.2rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            margin-bottom: 0.3rem;
+            line-height: 1.3;
         }
 
         .admin-task-meta {
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
             display: flex;
-            gap: 0.6rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .tier-badge {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 700;
             padding: 1px 6px;
             border-radius: 4px;
@@ -191,15 +209,13 @@
 
         .admin-task-card-actions {
             display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-            padding: 0.6rem 0.75rem;
-            justify-content: center;
-            flex-shrink: 0;
+            gap: 0.4rem;
+            padding: 0.5rem 0.85rem 0.7rem;
         }
 
         .admin-task-card-actions .btn {
-            padding: 0.3rem 0.75rem;
+            flex: 1;
+            padding: 0.3rem 0;
             font-size: 0.78rem;
         }
 
@@ -297,8 +313,10 @@
             <img class="logo-icon" src="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=128" alt=""> Paws of Fury Bingo
         </a>
         <div class="nav-links" id="nav-links-container">
-            <a href="info.html" class="nav-link">Info</a>
+            <a href="index.html" class="nav-link">Tasks</a>
             <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="boss-battle.html" class="nav-link">⚔️ Boss Battle</a>
+            <a href="info.html" class="nav-link">Info</a>
             <a href="https://discord.gg/paws-of-fury" target="_blank" rel="noopener" class="nav-link">Discord</a>
             <button id="auth-btn" class="btn btn-outline" onclick="window.bingoAuth?.toggleLogin()">Login</button>
         </div>
