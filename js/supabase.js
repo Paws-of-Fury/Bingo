@@ -81,7 +81,7 @@ export async function fetchTeamDetails(teamIdOrName) {
     // Approved submissions with task info for point calculations
     const { data: subs, error: sErr } = await sb
         .from('bingo_submissions')
-        .select('submitted_by_discord_id, submitted_by_rsn, bingo_tasks(points, required_pieces)')
+        .select('submitted_by_discord_id, submitted_by_rsn, pieces, points_multiplier, bingo_tasks(points, required_pieces)')
         .eq('team_id', teamId)
         .eq('status', 'approved');
     if (sErr) return members.map(m => ({ rsn: m.rsn, approved_count: 0, personal_points: 0 }));
@@ -94,8 +94,9 @@ export async function fetchTeamDetails(teamIdOrName) {
         byDiscord[key].count += 1;
         const pts = s.bingo_tasks?.points || 0;
         const req = s.bingo_tasks?.required_pieces || 1;
+        const pieces = s.pieces || 1;
         const multiplier = s.points_multiplier || 1;
-        byDiscord[key].points += (pts / req) * multiplier;
+        byDiscord[key].points += (pts / req) * pieces * multiplier;
     }
 
     return members.map(m => {
