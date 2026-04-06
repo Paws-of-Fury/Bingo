@@ -201,7 +201,7 @@ async function initAdmin(serviceKey) {
         const title = document.getElementById('task-title').value.trim();
         const desc = document.getElementById('task-desc').value.trim() || null;
         const img = document.getElementById('task-image').value.trim() || null;
-        const pts = parseInt(document.getElementById('task-points').value, 10) || 1;
+        const pts = Math.max(0, parseInt(document.getElementById('task-points').value, 10) || 0);
         const reqPieces = parseInt(document.getElementById('task-pieces').value, 10) || 1;
         const editId = editIdField.value;
 
