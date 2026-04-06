@@ -4,6 +4,7 @@
  */
 
 import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS, DOUBLE_POINTS_DAY, currentDay, dateForDay } from './config.js';
+import { checkTriplePointsUnlocked } from './supabase.js';
 import { updateAuthUI } from './auth.js';
 
 const ADMIN_KEY = 'bingo_admin';
@@ -709,6 +710,7 @@ async function loadSubmissions(sb, filter) {
                         <select class="sub-edit-multiplier form-input" style="padding:6px 8px;font-size:13px;">
                             <option value="1" ${(s.points_multiplier || 1) == 1 ? 'selected' : ''}>1× (normal)</option>
                             <option value="2" ${(s.points_multiplier || 1) == 2 ? 'selected' : ''}>2× (double)</option>
+                            <option value="3" ${(s.points_multiplier || 1) == 3 ? 'selected' : ''}>3× (triple)</option>
                         </select>
                     </div>
                 </div>
@@ -867,20 +869,25 @@ async function loadSubmissions(sb, filter) {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save';
             } else {
-                // Double points day: if approving and task now complete, set multiplier = 2
-                if (newStatus === 'approved' && currentDay() === DOUBLE_POINTS_DAY) {
-                    const reqPieces = s.bingo_tasks?.required_pieces || 1;
-                    const { count } = await sb
-                        .from('bingo_submissions')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('team_id', s.team_id)
-                        .eq('task_id', s.task_id)
-                        .eq('status', 'approved');
-                    if ((count || 0) >= reqPieces) {
-                        await sb.from('bingo_submissions')
-                            .update({ points_multiplier: 2.0 })
+                // Apply points multiplier if approving and task is now complete
+                if (newStatus === 'approved') {
+                    const isTriple = await checkTriplePointsUnlocked();
+                    const isDouble = !isTriple && currentDay() === DOUBLE_POINTS_DAY;
+                    const multiplier = isTriple ? 3.0 : isDouble ? 2.0 : null;
+                    if (multiplier) {
+                        const reqPieces = s.bingo_tasks?.required_pieces || 1;
+                        const { count } = await sb
+                            .from('bingo_submissions')
+                            .select('id', { count: 'exact', head: true })
                             .eq('team_id', s.team_id)
-                            .eq('task_id', s.task_id);
+                            .eq('task_id', s.task_id)
+                            .eq('status', 'approved');
+                        if ((count || 0) >= reqPieces) {
+                            await sb.from('bingo_submissions')
+                                .update({ points_multiplier: multiplier })
+                                .eq('team_id', s.team_id)
+                                .eq('task_id', s.task_id);
+                        }
                     }
                 }
                 const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'pending';

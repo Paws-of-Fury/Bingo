@@ -4,7 +4,7 @@
  */
 
 import { currentDay, dateForDay, tierInfo, TOTAL_DAYS, DOUBLE_POINTS_DAY } from './config.js';
-import { fetchTasksByDay, fetchTeamSubmissions, aggregateSubmissions } from './supabase.js';
+import { fetchTasksByDay, fetchTeamSubmissions, aggregateSubmissions, checkTriplePointsUnlocked } from './supabase.js';
 import { updateAuthUI, getSession, getViewTeamId } from './auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -67,10 +67,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         taskProgress = aggregateSubmissions(subs);
     }
 
-    // Show double points banner if this is day 7 and it's currently active
+    // Triple points unlock: check DB
+    const isTripleActive = await checkTriplePointsUnlocked();
+    const tripleEl = document.getElementById('triple-points-banner');
+    if (tripleEl && isTripleActive) tripleEl.style.display = '';
+
+    // Show double points banner if this is day 7 and it's currently active (and triple not overriding)
     const isDoubleDay = today === DOUBLE_POINTS_DAY;
     const doubleEl = document.getElementById('double-points-banner');
-    if (doubleEl && isDoubleDay) doubleEl.style.display = '';
+    if (doubleEl && isDoubleDay && !isTripleActive) doubleEl.style.display = '';
 
     // Sort by points (lowest → highest) and render each task
     tasks.sort((a, b) => a.points - b.points);
@@ -114,10 +119,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }
 
-        const showDouble = isDoubleDay && !isComplete;
+        const showDouble = isDoubleDay && !isTripleActive && !isComplete;
+        const showTriple = isTripleActive && !isComplete;
         card.innerHTML = `
             <div class="tier-badge ${tier.cls}">${tier.label}</div>
             ${statusBadge}
+            ${showTriple ? `<div class="double-pts-badge" style="background:linear-gradient(135deg,#9b59b6,#6c3483);color:#fff;">🔱 3× Points</div>` : ''}
             ${showDouble ? `<div class="double-pts-badge">🎊 2× Points</div>` : ''}
             ${task.image_url ? `<img class="task-image" src="${escapeAttr(task.image_url)}" alt="${escapeAttr(task.title)}">` : ''}
             <h3 class="task-title">${escapeHTML(task.title)}</h3>

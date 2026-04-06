@@ -216,6 +216,31 @@ export async function fetchBossBattle() {
     };
 }
 
+/**
+ * Check if the Day 14 triple points unlock task has been completed by any team.
+ * Returns true if triple points are now active.
+ */
+export async function checkTriplePointsUnlocked() {
+    const sb = getClient();
+    const { TRIPLE_POINTS_TASK_DAY } = await import('./config.js');
+    // Find the Day 14, 0-point unlock task
+    const { data: tasks } = await sb
+        .from('bingo_tasks')
+        .select('id')
+        .eq('day_number', TRIPLE_POINTS_TASK_DAY)
+        .eq('points', 0)
+        .eq('active', true);
+    if (!tasks?.length) return false;
+    const taskIds = tasks.map(t => t.id);
+    // Check if any team has an approved submission for it
+    const { count } = await sb
+        .from('bingo_submissions')
+        .select('id', { count: 'exact', head: true })
+        .in('task_id', taskIds)
+        .eq('status', 'approved');
+    return (count || 0) > 0;
+}
+
 /** Fetch all submissions for a team. */
 export async function fetchTeamSubmissions(teamId) {
     const sb = getClient();
