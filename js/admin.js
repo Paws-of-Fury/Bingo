@@ -707,6 +707,10 @@ async function loadSubmissions(sb, filter) {
                         </select>
                     </div>
                     <div>
+                        <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Pieces approved</label>
+                        <input type="number" class="sub-edit-pieces form-input" min="1" style="padding:6px 8px;font-size:13px;width:70px;" value="${s.pieces || 1}">
+                    </div>
+                    <div>
                         <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Points multiplier</label>
                         <select class="sub-edit-multiplier form-input" style="padding:6px 8px;font-size:13px;">
                             <option value="1" ${(s.points_multiplier || 1) == 1 ? 'selected' : ''}>1× (normal)</option>
@@ -850,10 +854,11 @@ async function loadSubmissions(sb, filter) {
             const submitterVal = row.querySelector('.sub-edit-submitter').value;
             const [newDiscordId, newRsn] = submitterVal.split('|');
             const newMultiplier = parseFloat(row.querySelector('.sub-edit-multiplier').value) || 1;
+            const newPieces = Math.max(1, parseInt(row.querySelector('.sub-edit-pieces').value) || 1);
             const updatePayload = {
                 status: newStatus,
                 piece_label: newLabel,
-                pieces: labels.length > 1 ? labels.length : 1,
+                pieces: newPieces,
                 reviewed_at: new Date().toISOString(),
                 submitted_by_rsn: newRsn || null,
                 submitted_by_discord_id: newDiscordId || null,
