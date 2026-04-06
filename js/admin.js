@@ -852,6 +852,7 @@ async function loadSubmissions(sb, filter) {
             const updatePayload = {
                 status: newStatus,
                 piece_label: newLabel,
+                pieces: labels.length > 1 ? labels.length : 1,
                 reviewed_at: new Date().toISOString(),
                 submitted_by_rsn: newRsn || null,
                 submitted_by_discord_id: newDiscordId || null,
