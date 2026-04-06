@@ -679,6 +679,7 @@ async function loadSubmissions(sb, filter) {
                 <div class="sub-info">
                     <span class="sub-team" style="color:${escapeHTML(teamColour)}">${escapeHTML(teamName)}</span>
                     <span class="sub-task">Day ${dayNum}: ${escapeHTML(taskTitle)} (${pts} pts${s.pieces > 1 ? `, ${s.pieces} pcs` : ''})</span>
+                    <span style="font-size:11px;color:#666;user-select:all;">ID: ${s.id}</span>
                     ${pieceLabel}
                 </div>
                 ${statusBadge}
