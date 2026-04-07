@@ -151,9 +151,9 @@ export function startCountdown() {
             target = BINGO_START;
             label = 'Event starts in';
         } else if (day <= TOTAL_DAYS) {
-            // Next day reveal at 04:00 UTC
+            // Next day reveal at 05:00 UTC
             const tomorrow = dateForDay(day + 1); // midnight UTC
-            target = new Date(tomorrow.getTime() + 4 * 3600000); // + 4 hours = 04:00 UTC
+            target = new Date(tomorrow.getTime() + 5 * 3600000); // + 5 hours = 05:00 UTC
             label = 'Next task in';
         } else {
             el.innerHTML = '<p class="text-secondary">Event complete!</p>';
