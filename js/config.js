@@ -17,20 +17,14 @@ export const DOUBLE_POINTS_DAY = 7;
 export const TRIPLE_POINTS_TASK_DAY = 14; // Day 14 task that unlocks 3× for all future completions
 
 /** Return the current bingo day (1-15), 0 if before start, 16 if after end.
- *  Days start at 04:00 UK time — hours before 4am count as the previous day. */
+ *  Days start at 04:00 UTC — hours before 4am count as the previous day. */
 export function currentDay() {
     const now = new Date();
-    // Get UK date + hour in one call to avoid locale parsing bugs
-    const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Europe/London',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: 'numeric', hour12: false,
-    }).formatToParts(now);
-    const get = type => parseInt(parts.find(p => p.type === type).value, 10);
-    const y = get('year'), m = get('month'), d = get('day'), h = get('hour');
+    const h = now.getUTCHours();
+    const y = now.getUTCFullYear(), m = now.getUTCMonth(), d = now.getUTCDate();
 
-    let todayMs = Date.UTC(y, m - 1, d);
-    if (h < 4) todayMs -= 1000 * 60 * 60 * 24; // before 4am counts as previous day
+    let todayMs = Date.UTC(y, m, d);
+    if (h < 4) todayMs -= 1000 * 60 * 60 * 24; // before 4am UTC counts as previous day
     const startMs = Date.UTC(2026, 2, 27); // March = month 2 (0-indexed)
 
     const diff = Math.floor((todayMs - startMs) / (1000 * 60 * 60 * 24));

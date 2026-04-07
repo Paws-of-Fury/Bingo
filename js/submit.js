@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const endH = (h + hours) % 24;
             const endStr = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
             errEl.textContent =
-                `It is not ${session.team_name}'s time slot! Your window is ${session.timeslot_start} to ${endStr} UK time.`;
+                `It is not ${session.team_name}'s time slot! Your window is ${session.timeslot_start} to ${endStr} UTC.`;
             errEl.style.display = '';
             document.getElementById('upload-area').style.display = 'none';
             document.getElementById('submit-btn').style.display = 'none';
@@ -200,13 +200,7 @@ function isWithinTimeslot(session) {
     if (!session.timeslot_start) return true;
 
     const now = new Date();
-    const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Europe/London', hour: 'numeric', minute: 'numeric',
-        hour12: false, hourCycle: 'h23',
-    }).formatToParts(now);
-    const ukH = parseInt(parts.find(p => p.type === 'hour').value, 10);
-    const ukM = parseInt(parts.find(p => p.type === 'minute').value, 10);
-    const nowMinutes = ukH * 60 + ukM;
+    const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
 
     const [startH, startM] = session.timeslot_start.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
