@@ -4,7 +4,7 @@
  */
 
 import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS, DOUBLE_POINTS_DAY, currentDay, dateForDay } from './config.js';
-import { checkTriplePointsUnlocked } from './supabase.js';
+import { checkTriplePointsUnlocked, fetchLeaderboard, fetchIndividualStats } from './supabase.js';
 import { updateAuthUI } from './auth.js';
 
 const ADMIN_KEY = 'bingo_admin';
@@ -173,6 +173,10 @@ async function initAdmin(serviceKey) {
     await loadTasks(sb);
     await populateSubmissionFilters(sb);
     await loadSubmissions(sb, 'pending');
+
+    // Lazy-load Winners / Overview sections when nav clicked
+    document.querySelector('[data-section="winners"]')?.addEventListener('click', () => loadWinners());
+    document.querySelector('[data-section="overview"]')?.addEventListener('click', () => loadOverview());
 
     // Status filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -724,6 +728,11 @@ async function loadSubmissions(sb, filter) {
                     <div class="sub-items-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
                     <button class="btn btn-outline sub-add-item-btn" style="font-size:12px;padding:4px 10px;">+ Add item</button>
                 </div>
+                <div style="margin-top:0.5rem;">
+                    <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Image URLs</label>
+                    <div class="sub-img-urls-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
+                    <button class="btn btn-outline sub-add-img-btn" style="font-size:12px;padding:4px 10px;">+ Add image URL</button>
+                </div>
                 <div style="display:flex;gap:0.5rem;margin-top:0.6rem;">
                     <button class="btn btn-gold sub-save-btn" style="padding:6px 14px;font-size:13px;">Save</button>
                     <button class="btn btn-outline sub-cancel-btn" style="padding:6px 14px;font-size:13px;">Cancel</button>
@@ -798,12 +807,41 @@ async function loadSubmissions(sb, filter) {
             });
         }
 
+        const imgUrlsList = row.querySelector('.sub-img-urls-list');
+        const existingUrls = attachments.map(a => (typeof a === 'string' ? a : a.url || '')).filter(Boolean);
+
+        function renderImgInputs(urls) {
+            imgUrlsList.innerHTML = '';
+            (urls.length ? urls : ['']).forEach(url => {
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+                wrap.innerHTML = `
+                    <input type="text" class="form-input sub-img-url-input" style="padding:5px 8px;font-size:12px;flex:1;" placeholder="https://…" value="${escapeHTML(url)}">
+                    <button class="btn btn-outline sub-remove-img" style="padding:4px 8px;font-size:12px;border-color:#e74c3c;color:#e74c3c;" title="Remove">✕</button>
+                `;
+                wrap.querySelector('.sub-remove-img').addEventListener('click', () => wrap.remove());
+                imgUrlsList.appendChild(wrap);
+            });
+        }
+
+        row.querySelector('.sub-add-img-btn').addEventListener('click', () => {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+            wrap.innerHTML = `
+                <input type="text" class="form-input sub-img-url-input" style="padding:5px 8px;font-size:12px;flex:1;" placeholder="https://…">
+                <button class="btn btn-outline sub-remove-img" style="padding:4px 8px;font-size:12px;border-color:#e74c3c;color:#e74c3c;" title="Remove">✕</button>
+            `;
+            wrap.querySelector('.sub-remove-img').addEventListener('click', () => wrap.remove());
+            imgUrlsList.appendChild(wrap);
+        });
+
         let teamMembers = null;
         editBtn.addEventListener('click', async () => {
             const open = editForm.style.display !== 'none';
             editForm.style.display = open ? 'none' : '';
             if (!open) {
                 renderItemInputs(pieceItems);
+                renderImgInputs(existingUrls);
                 // Lazy-load team members once
                 const submitterSelect = row.querySelector('.sub-edit-submitter');
                 if (!teamMembers) {
@@ -855,10 +893,13 @@ async function loadSubmissions(sb, filter) {
             const [newDiscordId, newRsn] = submitterVal.split('|');
             const newMultiplier = parseFloat(row.querySelector('.sub-edit-multiplier').value) || 1;
             const newPieces = Math.max(1, parseInt(row.querySelector('.sub-edit-pieces').value) || 1);
+            const newImgUrls = [...row.querySelectorAll('.sub-img-url-input')].map(i => i.value.trim()).filter(Boolean);
+            const newAttachments = newImgUrls.map(url => ({ url, proxy_url: url }));
             const updatePayload = {
                 status: newStatus,
                 piece_label: newLabel,
                 pieces: newPieces,
+                attachments: newAttachments,
                 reviewed_at: new Date().toISOString(),
                 submitted_by_rsn: newRsn || null,
                 submitted_by_discord_id: newDiscordId || null,
@@ -902,6 +943,134 @@ async function loadSubmissions(sb, filter) {
             }
         });
     }
+}
+
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+async function loadWinners() {
+    const el = document.getElementById('winners-content');
+    el.innerHTML = '<p class="text-muted">Loading…</p>';
+
+    const [teams, players] = await Promise.all([fetchLeaderboard(), fetchIndividualStats()]);
+    const byPieces = [...players].sort((a, b) => b.pieces - a.pieces);
+
+    let html = '';
+
+    // Team standings
+    html += `<h3 style="color:var(--accent-gold);margin-bottom:0.75rem;">🏆 Team Results</h3>`;
+    html += `<div class="card" style="padding:1.25rem;margin-bottom:1.5rem;">`;
+    teams.forEach((t, i) => {
+        const medal = MEDALS[i] || `#${i + 1}`;
+        const bold = i < 3 ? 'font-weight:700;font-size:1rem;' : 'color:var(--text-secondary);font-size:0.9rem;';
+        html += `<div style="${bold}display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);">
+            <span>${medal} ${escapeHTML(t.team_name)}</span>
+            <span style="color:var(--accent-gold);">${parseFloat(t.total_points).toFixed(1)} pts</span>
+        </div>`;
+    });
+    html += `</div>`;
+
+    // Individual points top 3
+    html += `<h3 style="color:#9b59b6;margin-bottom:0.75rem;">⭐ Top Individual Points</h3>`;
+    html += `<div class="card" style="padding:1.25rem;margin-bottom:1.5rem;">`;
+    players.slice(0, 3).forEach((p, i) => {
+        html += `<div style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);font-weight:${i === 0 ? '700' : '400'};">
+            <span>${MEDALS[i]} ${escapeHTML(p.rsn)} <span style="color:var(--text-muted);font-size:0.85rem;">(${escapeHTML(p.team_name)})</span></span>
+            <span style="color:#9b59b6;">${p.points.toFixed(1)} pts</span>
+        </div>`;
+    });
+    if (!players.length) html += '<p class="text-muted">No data.</p>';
+    html += `</div>`;
+
+    // Individual submissions top 3
+    html += `<h3 style="color:#3498db;margin-bottom:0.75rem;">📦 Most Items Submitted</h3>`;
+    html += `<div class="card" style="padding:1.25rem;margin-bottom:1.5rem;">`;
+    byPieces.slice(0, 3).forEach((p, i) => {
+        html += `<div style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);font-weight:${i === 0 ? '700' : '400'};">
+            <span>${MEDALS[i]} ${escapeHTML(p.rsn)} <span style="color:var(--text-muted);font-size:0.85rem;">(${escapeHTML(p.team_name)})</span></span>
+            <span style="color:#3498db;">${p.pieces} items</span>
+        </div>`;
+    });
+    if (!byPieces.length) html += '<p class="text-muted">No data.</p>';
+    html += `</div>`;
+
+    el.innerHTML = html;
+}
+
+async function loadOverview() {
+    const el = document.getElementById('overview-content');
+    el.innerHTML = '<p class="text-muted">Loading…</p>';
+
+    const [teams, players] = await Promise.all([fetchLeaderboard(), fetchIndividualStats()]);
+    const byPieces = [...players].sort((a, b) => b.pieces - a.pieces);
+
+    let html = '';
+
+    // Full team table
+    html += `<h3 style="color:var(--accent-gold);margin-bottom:0.75rem;">All Teams</h3>`;
+    html += `<div class="card" style="padding:1.25rem;margin-bottom:1.5rem;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+            <thead><tr style="color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
+                <th style="text-align:left;padding:0.4rem 0.5rem;">Place</th>
+                <th style="text-align:left;padding:0.4rem 0.5rem;">Team</th>
+                <th style="text-align:right;padding:0.4rem 0.5rem;">Points</th>
+            </tr></thead><tbody>`;
+    teams.forEach((t, i) => {
+        const medal = MEDALS[i] || `${i + 1}.`;
+        html += `<tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:0.4rem 0.5rem;">${medal}</td>
+            <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">${escapeHTML(t.team_name)}</td>
+            <td style="text-align:right;padding:0.4rem 0.5rem;color:var(--accent-gold);">${parseFloat(t.total_points).toFixed(1)}</td>
+        </tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    // Full individual table sorted by points
+    html += `<h3 style="color:#9b59b6;margin-bottom:0.5rem;">All Players — by Points</h3>`;
+    html += `<div class="card" style="padding:1.25rem;margin-bottom:1.5rem;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+            <thead><tr style="color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
+                <th style="text-align:left;padding:0.4rem 0.5rem;">#</th>
+                <th style="text-align:left;padding:0.4rem 0.5rem;">Player</th>
+                <th style="text-align:left;padding:0.4rem 0.5rem;">Team</th>
+                <th style="text-align:right;padding:0.4rem 0.5rem;">Points</th>
+                <th style="text-align:right;padding:0.4rem 0.5rem;">Items</th>
+            </tr></thead><tbody>`;
+    players.forEach((p, i) => {
+        html += `<tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${MEDALS[i] || i + 1}</td>
+            <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">${escapeHTML(p.rsn)}</td>
+            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${escapeHTML(p.team_name)}</td>
+            <td style="text-align:right;padding:0.4rem 0.5rem;color:#9b59b6;">${p.points.toFixed(1)}</td>
+            <td style="text-align:right;padding:0.4rem 0.5rem;">${p.pieces}</td>
+        </tr>`;
+    });
+    if (!players.length) html += `<tr><td colspan="5" class="text-muted" style="padding:0.5rem;">No data.</td></tr>`;
+    html += `</tbody></table></div>`;
+
+    // Full individual table sorted by pieces
+    html += `<h3 style="color:#3498db;margin-bottom:0.5rem;">All Players — by Items Submitted</h3>`;
+    html += `<div class="card" style="padding:1.25rem;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+            <thead><tr style="color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
+                <th style="text-align:left;padding:0.4rem 0.5rem;">#</th>
+                <th style="text-align:left;padding:0.4rem 0.5rem;">Player</th>
+                <th style="text-align:left;padding:0.4rem 0.5rem;">Team</th>
+                <th style="text-align:right;padding:0.4rem 0.5rem;">Items</th>
+                <th style="text-align:right;padding:0.4rem 0.5rem;">Points</th>
+            </tr></thead><tbody>`;
+    byPieces.forEach((p, i) => {
+        html += `<tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${MEDALS[i] || i + 1}</td>
+            <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">${escapeHTML(p.rsn)}</td>
+            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${escapeHTML(p.team_name)}</td>
+            <td style="text-align:right;padding:0.4rem 0.5rem;color:#3498db;">${p.pieces}</td>
+            <td style="text-align:right;padding:0.4rem 0.5rem;color:#9b59b6;">${p.points.toFixed(1)}</td>
+        </tr>`;
+    });
+    if (!byPieces.length) html += `<tr><td colspan="5" class="text-muted" style="padding:0.5rem;">No data.</td></tr>`;
+    html += `</tbody></table></div>`;
+
+    el.innerHTML = html;
 }
 
 function escapeHTML(str) {

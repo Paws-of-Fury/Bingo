@@ -350,6 +350,12 @@
                     <button class="admin-nav-item" data-section="submissions">
                         <span class="admin-nav-icon">📥</span> Submissions
                     </button>
+                    <button class="admin-nav-item" data-section="winners">
+                        <span class="admin-nav-icon">🏆</span> Winners
+                    </button>
+                    <button class="admin-nav-item" data-section="overview">
+                        <span class="admin-nav-icon">📊</span> Overview
+                    </button>
                 </nav>
                 <div class="admin-sidebar-footer">
                     <button id="admin-logout-btn" class="btn btn-outline btn-full" style="font-size:0.8rem;">Logout</button>
@@ -447,6 +453,19 @@
                     </div>
 
                     <div id="submissions-list"></div>
+                </div>
+
+                <!-- ── Winners section ── -->
+                <div id="section-winners" class="admin-section">
+                    <div class="admin-section-title">🏆 Winners Preview</div>
+                    <p class="text-muted" style="margin-bottom:1.5rem;">Preview of final results. Use <code>/bfinale</code> in Discord to post publicly.</p>
+                    <div id="winners-content"><p class="text-muted">Loading…</p></div>
+                </div>
+
+                <!-- ── Overview section ── -->
+                <div id="section-overview" class="admin-section">
+                    <div class="admin-section-title">📊 Event Overview</div>
+                    <div id="overview-content"><p class="text-muted">Loading…</p></div>
                 </div>
 
             </div><!-- /admin-content -->

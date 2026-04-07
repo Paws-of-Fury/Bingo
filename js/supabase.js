@@ -218,6 +218,43 @@ export async function fetchBossBattle() {
 }
 
 /**
+ * Fetch individual player stats across all approved submissions.
+ * Returns array sorted by points desc, each entry: { rsn, discord_id, team_id, team_name, team_colour, points, pieces }
+ */
+export async function fetchIndividualStats() {
+    const sb = getClient();
+    const { data: subs, error } = await sb
+        .from('bingo_submissions')
+        .select('submitted_by_rsn, submitted_by_discord_id, team_id, pieces, points_multiplier, bingo_tasks(points, required_pieces), bingo_teams(name, colour)')
+        .eq('status', 'approved');
+    if (error) { console.error('fetchIndividualStats', error); return []; }
+
+    const agg = {};
+    for (const s of (subs || [])) {
+        const key = s.submitted_by_discord_id || s.submitted_by_rsn;
+        if (!key) continue;
+        if (!agg[key]) {
+            agg[key] = {
+                rsn: s.submitted_by_rsn || 'Unknown',
+                discord_id: s.submitted_by_discord_id,
+                team_id: s.team_id,
+                team_name: s.bingo_teams?.name || '?',
+                team_colour: s.bingo_teams?.colour || '#888',
+                points: 0,
+                pieces: 0,
+            };
+        }
+        const pts = s.bingo_tasks?.points || 0;
+        const req = s.bingo_tasks?.required_pieces || 1;
+        const pieces = s.pieces || 1;
+        const mult = s.points_multiplier || 1;
+        agg[key].points += (pts / req) * pieces * mult;
+        agg[key].pieces += pieces;
+    }
+    return Object.values(agg).sort((a, b) => b.points - a.points);
+}
+
+/**
  * Check if the Day 14 triple points unlock task has been completed by any team.
  * Returns true if triple points are now active.
  */
