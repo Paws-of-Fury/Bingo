@@ -472,6 +472,15 @@
         </div><!-- /admin-shell -->
     </div><!-- /admin-panel -->
 
+    <!-- Overview / profile modal -->
+    <div id="overview-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);align-items:flex-start;justify-content:center;padding:3rem 1rem;overflow-y:auto;">
+        <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;width:100%;max-width:560px;padding:1.75rem;position:relative;">
+            <button id="overview-modal-close" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;">×</button>
+            <div id="overview-modal-title" style="font-size:1.1rem;font-weight:700;color:var(--accent-gold);margin-bottom:1rem;padding-right:2rem;"></div>
+            <div id="overview-modal-body"></div>
+        </div>
+    </div>
+
     <!-- Task add/edit modal -->
     <div id="task-modal-overlay" class="task-modal-overlay">
         <div class="task-modal">

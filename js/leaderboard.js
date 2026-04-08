@@ -88,11 +88,6 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
                     return;
                 }
 
-                const isOwnTeam = isAdmin || (session && (
-                    session.team_name === r.team_name ||
-                    (r.team_id && String(session.team_id) === String(r.team_id))
-                ));
-
                 inner.innerHTML = '';
                 for (const m of members) {
                     const row = document.createElement('div');
@@ -101,7 +96,7 @@ export async function renderLeaderboard(containerId = 'leaderboard') {
                     const nameEl = document.createElement('span');
                     nameEl.className = 'lb-member-name';
                     nameEl.textContent = m.rsn;
-                    if (isOwnTeam && m.approved_count > 0) {
+                    if (m.approved_count > 0) {
                         nameEl.classList.add('lb-member-clickable');
                         nameEl.addEventListener('click', () => openMemberModal(m, r.team_id || r.team_name, session, isAdmin));
                     }

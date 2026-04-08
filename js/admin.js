@@ -4,7 +4,7 @@
  */
 
 import { SUPABASE_URL, SUPABASE_ANON, TOTAL_DAYS, DOUBLE_POINTS_DAY, currentDay, dateForDay } from './config.js';
-import { checkTriplePointsUnlocked, fetchLeaderboard, fetchIndividualStats } from './supabase.js';
+import { checkTriplePointsUnlocked, fetchLeaderboard, fetchIndividualStats, fetchMemberSubmissions, fetchTeamSubmissionsAll } from './supabase.js';
 import { updateAuthUI } from './auth.js';
 
 const ADMIN_KEY = 'bingo_admin';
@@ -154,6 +154,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 /** Initialise the admin panel. */
 async function initAdmin(serviceKey) {
     const sb = getAdminClient(serviceKey);
+
+    // Overview modal close handlers
+    const overviewModal = document.getElementById('overview-modal');
+    if (overviewModal) {
+        document.getElementById('overview-modal-close')?.addEventListener('click', () => { overviewModal.style.display = 'none'; });
+        overviewModal.addEventListener('click', e => { if (e.target === overviewModal) overviewModal.style.display = 'none'; });
+    }
 
     // Day info
     const day = currentDay();
@@ -1001,76 +1008,158 @@ async function loadOverview() {
     el.innerHTML = '<p class="text-muted">Loading…</p>';
 
     const [teams, players] = await Promise.all([fetchLeaderboard(), fetchIndividualStats()]);
-    const byPieces = [...players].sort((a, b) => b.pieces - a.pieces);
 
     let html = '';
 
-    // Full team table
+    // ── Team table ─────────────────────────────────────────
     html += `<h3 style="color:var(--accent-gold);margin-bottom:0.75rem;">All Teams</h3>`;
     html += `<div class="card" style="padding:1.25rem;margin-bottom:1.5rem;overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
             <thead><tr style="color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
-                <th style="text-align:left;padding:0.4rem 0.5rem;">Place</th>
+                <th style="text-align:left;padding:0.4rem 0.5rem;">#</th>
                 <th style="text-align:left;padding:0.4rem 0.5rem;">Team</th>
                 <th style="text-align:right;padding:0.4rem 0.5rem;">Points</th>
-            </tr></thead><tbody>`;
+            </tr></thead><tbody id="overview-teams-body">`;
     teams.forEach((t, i) => {
-        const medal = MEDALS[i] || `${i + 1}.`;
         html += `<tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:0.4rem 0.5rem;">${medal}</td>
-            <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">${escapeHTML(t.team_name)}</td>
+            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${MEDALS[i] || i + 1}</td>
+            <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">
+                <span class="overview-team-link" data-team-id="${t.team_id}" data-team-name="${escapeHTML(t.team_name)}" style="cursor:pointer;color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);">${escapeHTML(t.team_name)}</span>
+            </td>
             <td style="text-align:right;padding:0.4rem 0.5rem;color:var(--accent-gold);">${parseFloat(t.total_points).toFixed(1)}</td>
         </tr>`;
     });
     html += `</tbody></table></div>`;
 
-    // Full individual table sorted by points
-    html += `<h3 style="color:#9b59b6;margin-bottom:0.5rem;">All Players — by Points</h3>`;
-    html += `<div class="card" style="padding:1.25rem;margin-bottom:1.5rem;overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
-            <thead><tr style="color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
-                <th style="text-align:left;padding:0.4rem 0.5rem;">#</th>
-                <th style="text-align:left;padding:0.4rem 0.5rem;">Player</th>
-                <th style="text-align:left;padding:0.4rem 0.5rem;">Team</th>
-                <th style="text-align:right;padding:0.4rem 0.5rem;">Points</th>
-                <th style="text-align:right;padding:0.4rem 0.5rem;">Items</th>
-            </tr></thead><tbody>`;
-    players.forEach((p, i) => {
-        html += `<tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${MEDALS[i] || i + 1}</td>
-            <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">${escapeHTML(p.rsn)}</td>
-            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${escapeHTML(p.team_name)}</td>
-            <td style="text-align:right;padding:0.4rem 0.5rem;color:#9b59b6;">${p.points.toFixed(1)}</td>
-            <td style="text-align:right;padding:0.4rem 0.5rem;">${p.pieces}</td>
-        </tr>`;
-    });
-    if (!players.length) html += `<tr><td colspan="5" class="text-muted" style="padding:0.5rem;">No data.</td></tr>`;
-    html += `</tbody></table></div>`;
-
-    // Full individual table sorted by pieces
-    html += `<h3 style="color:#3498db;margin-bottom:0.5rem;">All Players — by Items Submitted</h3>`;
+    // ── Player table (merged, sortable) ────────────────────
+    html += `<h3 style="color:#9b59b6;margin-bottom:0.75rem;">All Players</h3>`;
     html += `<div class="card" style="padding:1.25rem;overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
             <thead><tr style="color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
                 <th style="text-align:left;padding:0.4rem 0.5rem;">#</th>
                 <th style="text-align:left;padding:0.4rem 0.5rem;">Player</th>
                 <th style="text-align:left;padding:0.4rem 0.5rem;">Team</th>
-                <th style="text-align:right;padding:0.4rem 0.5rem;">Items</th>
-                <th style="text-align:right;padding:0.4rem 0.5rem;">Points</th>
-            </tr></thead><tbody>`;
-    byPieces.forEach((p, i) => {
-        html += `<tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${MEDALS[i] || i + 1}</td>
-            <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">${escapeHTML(p.rsn)}</td>
-            <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${escapeHTML(p.team_name)}</td>
-            <td style="text-align:right;padding:0.4rem 0.5rem;color:#3498db;">${p.pieces}</td>
-            <td style="text-align:right;padding:0.4rem 0.5rem;color:#9b59b6;">${p.points.toFixed(1)}</td>
-        </tr>`;
-    });
-    if (!byPieces.length) html += `<tr><td colspan="5" class="text-muted" style="padding:0.5rem;">No data.</td></tr>`;
-    html += `</tbody></table></div>`;
+                <th class="overview-sort-header" data-col="points" style="text-align:right;padding:0.4rem 0.5rem;cursor:pointer;user-select:none;">Points <span class="sort-arrow">▼</span></th>
+                <th class="overview-sort-header" data-col="pieces" style="text-align:right;padding:0.4rem 0.5rem;cursor:pointer;user-select:none;">Items <span class="sort-arrow" style="opacity:0.3;">⇅</span></th>
+            </tr></thead>
+            <tbody id="overview-players-body"></tbody>
+        </table>
+    </div>`;
 
     el.innerHTML = html;
+
+    // ── Sort state ─────────────────────────────────────────
+    let sortCol = 'points';
+    let sortDir = -1; // -1 = desc, 1 = asc
+
+    function renderPlayers() {
+        const sorted = [...players].sort((a, b) => sortDir * (b[sortCol] - a[sortCol]));
+        const tbody = document.getElementById('overview-players-body');
+        tbody.innerHTML = '';
+        sorted.forEach((p, i) => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-subtle)';
+            tr.innerHTML = `
+                <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">${MEDALS[i] || i + 1}</td>
+                <td style="padding:0.4rem 0.5rem;font-weight:${i < 3 ? '700' : '400'};">
+                    <span class="overview-player-link" data-team-id="${p.team_id}" data-discord-id="${p.discord_id || ''}" data-rsn="${escapeHTML(p.rsn)}" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);">${escapeHTML(p.rsn)}</span>
+                </td>
+                <td style="padding:0.4rem 0.5rem;color:var(--text-muted);">
+                    <span class="overview-team-link" data-team-id="${p.team_id}" data-team-name="${escapeHTML(p.team_name)}" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);">${escapeHTML(p.team_name)}</span>
+                </td>
+                <td style="text-align:right;padding:0.4rem 0.5rem;color:#9b59b6;">${p.points.toFixed(1)}</td>
+                <td style="text-align:right;padding:0.4rem 0.5rem;color:#3498db;">${p.pieces}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        if (!players.length) tbody.innerHTML = `<tr><td colspan="5" class="text-muted" style="padding:0.5rem;">No data.</td></tr>`;
+    }
+
+    renderPlayers();
+
+    // Sort headers
+    el.querySelectorAll('.overview-sort-header').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.col;
+            if (sortCol === col) {
+                sortDir *= -1;
+            } else {
+                sortCol = col;
+                sortDir = -1;
+            }
+            el.querySelectorAll('.overview-sort-header .sort-arrow').forEach(a => {
+                a.textContent = '⇅';
+                a.style.opacity = '0.3';
+            });
+            th.querySelector('.sort-arrow').textContent = sortDir === -1 ? '▼' : '▲';
+            th.querySelector('.sort-arrow').style.opacity = '1';
+            renderPlayers();
+        });
+    });
+
+    // Player name clicks → profile modal
+    el.addEventListener('click', async e => {
+        const playerLink = e.target.closest('.overview-player-link');
+        if (playerLink) {
+            const rsn = playerLink.dataset.rsn;
+            const discordId = playerLink.dataset.discordId || null;
+            const teamId = parseInt(playerLink.dataset.teamId);
+            await openProfileModal({ rsn, discord_id: discordId, team_id: teamId });
+            return;
+        }
+        const teamLink = e.target.closest('.overview-team-link');
+        if (teamLink) {
+            const teamId = parseInt(teamLink.dataset.teamId);
+            const teamName = teamLink.dataset.teamName;
+            await openTeamModal(teamId, teamName);
+        }
+    });
+}
+
+async function openProfileModal(player) {
+    const modal = document.getElementById('overview-modal');
+    const title = document.getElementById('overview-modal-title');
+    const body  = document.getElementById('overview-modal-body');
+    title.textContent = `${player.rsn}'s submissions`;
+    body.innerHTML = '<p class="text-muted">Loading…</p>';
+    modal.style.display = 'flex';
+
+    const subs = await fetchMemberSubmissions(player.team_id, player.discord_id, player.rsn);
+    renderModalSubs(body, subs);
+}
+
+async function openTeamModal(teamId, teamName) {
+    const modal = document.getElementById('overview-modal');
+    const title = document.getElementById('overview-modal-title');
+    const body  = document.getElementById('overview-modal-body');
+    title.textContent = `${teamName} — all submissions`;
+    body.innerHTML = '<p class="text-muted">Loading…</p>';
+    modal.style.display = 'flex';
+
+    const subs = await fetchTeamSubmissionsAll(teamId);
+    renderModalSubs(body, subs, true);
+}
+
+function renderModalSubs(body, subs, showSubmitter = false) {
+    if (!subs.length) {
+        body.innerHTML = '<p class="text-muted">No approved submissions found.</p>';
+        return;
+    }
+    body.innerHTML = subs.map(s => {
+        const task = s.bingo_tasks;
+        const items = s.piece_label ? s.piece_label.split(',').map(p => p.trim()).filter(Boolean) : [];
+        const date = new Date(s.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const images = (Array.isArray(s.attachments) ? s.attachments : [])
+            .map(a => typeof a === 'string' ? a : a?.url || '').filter(Boolean);
+        return `<div style="padding:0.6rem 0;border-bottom:1px solid var(--border-subtle);">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;">
+                <span style="font-weight:600;font-size:0.9rem;">${task ? `Day ${task.day_number}: ${escapeHTML(task.title)}` : 'Unknown task'}</span>
+                <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">${showSubmitter && s.submitted_by_rsn ? escapeHTML(s.submitted_by_rsn) + ' · ' : ''}${date}</span>
+            </div>
+            ${items.length ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">${items.map(i => `<span class="obtained-item obtained-approved">✅ ${escapeHTML(i)}</span>`).join('')}</div>` : ''}
+            ${images.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${images.map(u => `<a href="${escapeHTML(u)}" target="_blank" rel="noopener"><img src="${escapeHTML(u)}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border-subtle);"></a>`).join('')}</div>` : ''}
+        </div>`;
+    }).join('');
 }
 
 function escapeHTML(str) {

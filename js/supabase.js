@@ -126,6 +126,19 @@ export async function fetchTeamTimeslots() {
     return map;
 }
 
+/** Fetch all approved submissions for an entire team (for team modal). */
+export async function fetchTeamSubmissionsAll(teamId) {
+    const sb = getClient();
+    const { data, error } = await sb
+        .from('bingo_submissions')
+        .select('piece_label, attachments, created_at, submitted_by_rsn, bingo_tasks(title, day_number, points)')
+        .eq('team_id', teamId)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+    if (error) { console.error('fetchTeamSubmissionsAll', error); return []; }
+    return data || [];
+}
+
 /** Fetch all approved submissions for a specific team member. */
 export async function fetchMemberSubmissions(teamId, discordId, rsn) {
     const sb = getClient();
