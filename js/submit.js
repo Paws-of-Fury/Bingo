@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ].join('');
                     statusHtml += `<ul style="margin:4px 0 8px 16px">${items}</ul>`;
                 }
-                piecesLabel.innerHTML = statusHtml + 'What item are you submitting?';
+                piecesLabel.innerHTML = statusHtml + 'What item are you submitting? <span style="color:#e74c3c">*</span>';
             } else {
                 piecesLabel.textContent = 'What item are you submitting? (optional)';
             }
@@ -165,6 +165,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const taskId = parseInt(params.get('task'), 10) || null;
 
             const pieceLabel = document.getElementById('pieces-input')?.value?.trim() || null;
+
+            if (reqPieces > 1 && !pieceLabel) {
+                statusEl.textContent = 'Please enter the item you are submitting before continuing.';
+                statusEl.style.color = '#e74c3c';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit';
+                document.getElementById('pieces-input')?.focus();
+                return;
+            }
 
             const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-proof`, {
                 method: 'POST',
