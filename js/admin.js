@@ -926,7 +926,7 @@ async function loadSubmissions(sb, filter) {
             } else {
                 // Apply points multiplier if approving and task is now complete
                 if (newStatus === 'approved') {
-                    const isTriple = await checkTriplePointsUnlocked();
+                    const isTriple = await checkTriplePointsUnlocked(s.team_id);
                     const isDouble = !isTriple && currentDay() === DOUBLE_POINTS_DAY;
                     const multiplier = isTriple ? 3.0 : isDouble ? 2.0 : null;
                     if (multiplier) {

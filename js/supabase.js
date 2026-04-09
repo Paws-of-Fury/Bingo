@@ -268,10 +268,11 @@ export async function fetchIndividualStats() {
 }
 
 /**
- * Check if the Day 14 triple points unlock task has been completed by any team.
- * Returns true if triple points are now active.
+ * Check if the Day 14 triple points unlock task has been completed.
+ * If teamId is provided, checks only that team. Otherwise checks any team.
+ * Returns true if triple points are active for the given context.
  */
-export async function checkTriplePointsUnlocked() {
+export async function checkTriplePointsUnlocked(teamId = null) {
     const sb = getClient();
     const { TRIPLE_POINTS_TASK_DAY } = await import('./config.js');
     // Find the Day 14, 0-point unlock task
@@ -283,12 +284,14 @@ export async function checkTriplePointsUnlocked() {
         .eq('active', true);
     if (!tasks?.length) return false;
     const taskIds = tasks.map(t => t.id);
-    // Check if any team has an approved submission for it
-    const { count } = await sb
+    // Check if the specified team (or any team) has an approved submission for it
+    let query = sb
         .from('bingo_submissions')
         .select('id', { count: 'exact', head: true })
         .in('task_id', taskIds)
         .eq('status', 'approved');
+    if (teamId != null) query = query.eq('team_id', teamId);
+    const { count } = await query;
     return (count || 0) > 0;
 }
 

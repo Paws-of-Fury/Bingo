@@ -67,8 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         taskProgress = aggregateSubmissions(subs);
     }
 
-    // Triple points unlock: check DB
-    const isTripleActive = await checkTriplePointsUnlocked();
+    // Triple points unlock: check DB — only active if this team has completed the unlock task
+    const isTripleActive = await checkTriplePointsUnlocked(viewTeamId || null);
     const tripleEl = document.getElementById('triple-points-banner');
     if (tripleEl && isTripleActive) tripleEl.style.display = '';
 
