@@ -237,9 +237,9 @@ async function openPlayerModal(rsn, discordId) {
     openModal(`${rsn}'s drops`, '<p style="color:var(--text-muted)">Loading…</p>');
 
     let query = sb.from('bingo_submissions')
-        .select('piece_label, attachments, bingo_tasks(title, day_number, points), submitted_at')
+        .select('piece_label, attachments, created_at, bingo_tasks(title, day_number, points)')
         .eq('status', 'approved')
-        .order('submitted_at');
+        .order('created_at');
 
     if (discordId) {
         query = query.eq('submitted_by_discord_id', discordId);
@@ -247,7 +247,8 @@ async function openPlayerModal(rsn, discordId) {
         query = query.eq('submitted_by_rsn', rsn);
     }
 
-    const { data: subs } = await query;
+    const { data: subs, error } = await query;
+    if (error) console.error('openPlayerModal', error);
     if (!subs?.length) {
         document.getElementById('arc-modal-body').innerHTML = '<p style="color:var(--text-muted)">No approved submissions found.</p>';
         return;
