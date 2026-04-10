@@ -92,13 +92,14 @@ async function loadResults() {
     const podiumCards = top3.map((t, i) => {
         const prize = Math.round(totalPool * POOL_SPLITS[i]);
         const members = membersByTeam[t.team_id] || [];
-        const perMember = members.length ? Math.floor(prize / members.length) : 0;
-        const remainder = prize - perMember * members.length;
 
-        const memberRows = members.map((m, j) => {
+        const exactShare = members.length ? prize / members.length : 0;
+        const memberRows = members.map(m => {
             const name = m.rsn || 'Unknown';
-            const share = perMember + (j === 0 ? remainder : 0);
-            return `<li>${name} — ${fmtGp(share)} gp</li>`;
+            const shareStr = Number.isInteger(exactShare)
+                ? exactShare.toLocaleString()
+                : exactShare.toFixed(1).replace(/\.0$/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return `<li>${name} — ${shareStr}M gp</li>`;
         }).join('');
 
         return `
