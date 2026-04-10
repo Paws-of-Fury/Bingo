@@ -79,7 +79,7 @@ async function loadResults() {
         };
         const t = s.bingo_tasks || {};
         const pts = t.points || 0, req = t.required_pieces || 1;
-        agg[key].points += (pts / req) * (s.pieces || 1) * (s.points_multiplier || 1);
+        agg[key].points += (pts / req) * (s.pieces || 1);
         agg[key].pieces += s.pieces || 1;
     }
     const byPoints = Object.values(agg).sort((a, b) => b.points - a.points);
@@ -188,7 +188,7 @@ async function buildIndivCache() {
             points: 0, pieces: 0,
         };
         const t = s.bingo_tasks || {};
-        byKey[key].points += ((t.points || 0) / (t.required_pieces || 1)) * (s.pieces || 1) * (s.points_multiplier || 1);
+        byKey[key].points += ((t.points || 0) / (t.required_pieces || 1)) * (s.pieces || 1);
         byKey[key].pieces += s.pieces || 1;
     }
 
