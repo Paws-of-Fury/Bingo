@@ -11,10 +11,9 @@ const POOL_SPLITS = [0.60, 0.25, 0.15];
 const MEDALS = ['🥇', '🥈', '🥉'];
 const PLACE_NAMES = ['First Place', 'Second Place', 'Third Place'];
 
+/** Amounts in DB are stored in millions (e.g. 3095 = 3,095M gp). */
 function fmtGp(n) {
-    if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
-    if (n >= 1_000_000)     return (n / 1_000_000).toFixed(0) + 'M';
-    return n.toLocaleString();
+    return n.toLocaleString() + 'M';
 }
 
 function tierBadge(pts) {
