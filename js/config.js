@@ -10,8 +10,14 @@ export const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 export const DISCORD_CLIENT_ID = '1465463139633201417';
 export const DISCORD_REDIRECT  = window.location.origin + '/Bingo/callback.html';
 
-export const BINGO_START = new Date('2026-03-27T00:00:00+00:00');
-export const BINGO_END   = new Date('2026-04-10T23:59:59+00:00');
+export const BINGO_START    = new Date('2026-03-27T00:00:00+00:00');
+export const BINGO_END      = new Date('2026-04-10T23:59:59+00:00');
+export const HISTORIC_START = new Date('2026-04-12T11:00:00+00:00'); // 2 days after end
+
+/** True once the bingo has ended and we are in historic/archive mode. */
+export function isHistoricMode() {
+    return Date.now() >= HISTORIC_START.getTime();
+}
 export const TOTAL_DAYS  = 15;
 export const DOUBLE_POINTS_DAY = 7;
 export const TRIPLE_POINTS_TASK_DAY = 14; // Day 14 task that unlocks 3× for all future completions

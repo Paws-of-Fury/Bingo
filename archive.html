@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paws of Fury Bingo — March 2026 Archive</title>
+    <link rel="icon" href="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=32">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        .archive-hero {
+            text-align: center;
+            padding: 3rem 1rem 2rem;
+            background: linear-gradient(180deg, rgba(255,215,0,0.06) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 2.5rem;
+        }
+        .archive-hero h1 { font-size: 2.2rem; font-weight: 900; color: var(--accent-gold); margin-bottom: 0.4rem; }
+        .archive-hero p  { color: var(--text-muted); font-size: 1rem; }
+
+        .archive-tabs {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            padding: 0 1rem;
+        }
+        .archive-tab {
+            padding: 0.55rem 1.4rem;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .archive-tab:hover { border-color: rgba(255,215,0,0.3); color: var(--text-primary); }
+        .archive-tab.active { background: rgba(255,215,0,0.1); border-color: var(--accent-gold); color: var(--accent-gold); }
+
+        .archive-section { display: none; max-width: 900px; margin: 0 auto; padding: 0 1rem 4rem; }
+        .archive-section.active { display: block; }
+
+        /* Results podium */
+        .podium { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2rem; }
+        @media(max-width:640px){ .podium { grid-template-columns: 1fr; } }
+        .podium-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 1.25rem;
+            text-align: center;
+            position: relative;
+        }
+        .podium-card.place-1 { border-color: #FFD700; }
+        .podium-card.place-2 { border-color: #C0C0C0; }
+        .podium-card.place-3 { border-color: #CD7F32; }
+        .podium-medal { font-size: 2.5rem; margin-bottom: 0.4rem; }
+        .podium-team  { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.2rem; }
+        .podium-pts   { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+        .podium-prize { font-size: 1rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.75rem; }
+        .podium-members { list-style: none; padding: 0; margin: 0; font-size: 0.82rem; color: var(--text-secondary); }
+        .podium-members li { padding: 2px 0; border-top: 1px solid var(--border-subtle); }
+        .podium-members li:first-child { border-top: none; }
+
+        .also-competed { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+        /* MVP section */
+        .mvp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        @media(max-width:600px){ .mvp-grid { grid-template-columns: 1fr; } }
+        .mvp-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .mvp-card-title { font-size: 0.95rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.75rem; }
+        .mvp-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-top: 1px solid var(--border-subtle); font-size: 0.88rem; }
+        .mvp-row:first-of-type { border-top: none; }
+        .mvp-medal { font-size: 1.1rem; width: 1.5rem; }
+        .mvp-name  { flex: 1; color: var(--text-primary); font-weight: 600; }
+        .mvp-stat  { color: var(--text-muted); font-size: 0.8rem; }
+        .mvp-prize { color: #2ecc71; font-weight: 700; font-size: 0.82rem; }
+
+        /* Leaderboard table */
+        .archive-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        .archive-table th {
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .archive-table td { padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-primary); }
+        .archive-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .rank-num { font-weight: 700; color: var(--text-muted); }
+
+        /* Tasks grid */
+        .tasks-day-group { margin-bottom: 1.5rem; }
+        .tasks-day-label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+        .tasks-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 0.75rem; }
+        .task-arc-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 0.85rem; }
+        .task-arc-title { font-weight: 700; font-size: 0.88rem; color: var(--text-primary); margin-bottom: 0.3rem; }
+        .task-arc-meta  { font-size: 0.75rem; color: var(--text-muted); }
+        .task-arc-badge { display:inline-block; font-size:0.65rem; font-weight:700; padding:1px 6px; border-radius:4px; text-transform:uppercase; margin-right:4px; }
+        .badge-gold   { background:rgba(255,215,0,0.2);color:#ffd700; }
+        .badge-silver { background:rgba(192,192,192,0.15);color:#c0c0c0; }
+        .badge-bronze { background:rgba(205,127,50,0.2);color:#cd7f32; }
+        .badge-completed { background:rgba(46,204,113,0.2);color:#2ecc71; }
+
+        .loading-msg { text-align: center; color: var(--text-muted); padding: 3rem 0; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <img class="logo-icon" src="https://cdn.discordapp.com/icons/1327651830133690439/ae23d4aed874053800d2a9dfb95ad426.png?size=128" alt=""> Paws of Fury Bingo
+        </a>
+        <div class="nav-links">
+            <a href="archive.html" class="nav-link active">📜 March 2026</a>
+            <a href="https://discord.gg/paws-of-fury" target="_blank" rel="noopener" class="nav-link">Discord</a>
+        </div>
+    </nav>
+
+    <div class="archive-hero">
+        <h1>🏆 Paws of Fury Bingo</h1>
+        <p>March 2026 · 15 Days · Official Archive</p>
+    </div>
+
+    <div class="archive-tabs">
+        <button class="archive-tab active" data-tab="results">🏆 Results</button>
+        <button class="archive-tab" data-tab="leaderboard">📊 Leaderboard</button>
+        <button class="archive-tab" data-tab="tasks">📋 Tasks</button>
+    </div>
+
+    <!-- Results tab -->
+    <div id="tab-results" class="archive-section active">
+        <div id="results-content"><p class="loading-msg">Loading results…</p></div>
+    </div>
+
+    <!-- Leaderboard tab -->
+    <div id="tab-leaderboard" class="archive-section">
+        <div id="leaderboard-content"><p class="loading-msg">Loading leaderboard…</p></div>
+    </div>
+
+    <!-- Tasks tab -->
+    <div id="tab-tasks" class="archive-section">
+        <div id="tasks-content"><p class="loading-msg">Loading tasks…</p></div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2026 Paws of Fury · Bingo Archive</p>
+    </footer>
+
+    <script type="module" src="js/archive.js"></script>
+</body>
+</html>
