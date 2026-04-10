@@ -157,6 +157,15 @@
         <div id="tasks-content"><p class="loading-msg">Loading tasks…</p></div>
     </div>
 
+    <!-- Player / team modal -->
+    <div id="arc-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.75);align-items:flex-start;justify-content:center;padding:3rem 1rem;overflow-y:auto;">
+        <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;width:100%;max-width:560px;padding:1.75rem;position:relative;">
+            <button onclick="document.getElementById('arc-modal').style.display='none'" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;">×</button>
+            <div id="arc-modal-title" style="font-size:1.1rem;font-weight:700;color:var(--accent-gold);margin-bottom:1rem;padding-right:2rem;"></div>
+            <div id="arc-modal-body"></div>
+        </div>
+    </div>
+
     <footer class="footer">
         <p>&copy; 2026 Paws of Fury · Bingo Archive</p>
     </footer>

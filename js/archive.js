@@ -152,28 +152,157 @@ async function loadResults() {
     `;
 }
 
+// ── Modal ────────────────────────────────────────────────────
+
+function openModal(title, bodyHtml) {
+    document.getElementById('arc-modal-title').textContent = title;
+    document.getElementById('arc-modal-body').innerHTML = bodyHtml;
+    document.getElementById('arc-modal').style.display = 'flex';
+}
+function closeModal() {
+    document.getElementById('arc-modal').style.display = 'none';
+}
+document.addEventListener('click', e => {
+    if (e.target.id === 'arc-modal') closeModal();
+});
+
+// ── Individual stats cache (built once on first leaderboard load) ──
+let _indivCache = null; // { byKey: {rsn,discord_id,team_id,points,pieces}, byTeam: {team_id:[...]} }
+
+async function buildIndivCache() {
+    if (_indivCache) return _indivCache;
+    const { data: subs } = await sb.from('bingo_submissions').select(
+        'submitted_by_rsn, submitted_by_discord_id, team_id, pieces, points_multiplier,' +
+        ' bingo_tasks(points, required_pieces)'
+    ).eq('status', 'approved');
+
+    const byKey = {};
+    for (const s of (subs || [])) {
+        const key = s.submitted_by_discord_id || s.submitted_by_rsn;
+        if (!key) continue;
+        if (!byKey[key]) byKey[key] = {
+            rsn: s.submitted_by_rsn || 'Unknown',
+            discord_id: s.submitted_by_discord_id,
+            team_id: s.team_id,
+            points: 0, pieces: 0,
+        };
+        const t = s.bingo_tasks || {};
+        byKey[key].points += ((t.points || 0) / (t.required_pieces || 1)) * (s.pieces || 1) * (s.points_multiplier || 1);
+        byKey[key].pieces += s.pieces || 1;
+    }
+
+    const byTeam = {};
+    for (const p of Object.values(byKey)) {
+        (byTeam[p.team_id] = byTeam[p.team_id] || []).push(p);
+    }
+    for (const arr of Object.values(byTeam)) arr.sort((a, b) => b.points - a.points);
+
+    _indivCache = { byKey, byTeam };
+    return _indivCache;
+}
+
+async function openTeamModal(teamId, teamName) {
+    openModal(`${teamName} — Members`, '<p style="color:var(--text-muted)">Loading…</p>');
+    const cache = await buildIndivCache();
+    const members = cache.byTeam[teamId] || [];
+
+    if (!members.length) {
+        document.getElementById('arc-modal-body').innerHTML = '<p style="color:var(--text-muted)">No submissions found.</p>';
+        return;
+    }
+
+    const rows = members.map(m => `
+        <tr>
+            <td>
+                <span class="arc-player-link" data-rsn="${m.rsn}" data-discord="${m.discord_id || ''}" style="color:var(--accent-gold);cursor:pointer;text-decoration:underline;">${m.rsn}</span>
+            </td>
+            <td>${m.points.toFixed(1)}</td>
+            <td>${m.pieces}</td>
+        </tr>`).join('');
+
+    document.getElementById('arc-modal-body').innerHTML = `
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">Click a player's name to see their drops.</p>
+        <table class="archive-table">
+            <thead><tr><th>Player</th><th>Points</th><th>Items</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+
+    document.querySelectorAll('.arc-player-link').forEach(el => {
+        el.addEventListener('click', () => openPlayerModal(el.dataset.rsn, el.dataset.discord || null));
+    });
+}
+
+async function openPlayerModal(rsn, discordId) {
+    openModal(`${rsn}'s drops`, '<p style="color:var(--text-muted)">Loading…</p>');
+
+    let query = sb.from('bingo_submissions')
+        .select('piece_label, attachments, bingo_tasks(title, day_number, points), submitted_at')
+        .eq('status', 'approved')
+        .order('submitted_at');
+
+    if (discordId) {
+        query = query.eq('submitted_by_discord_id', discordId);
+    } else {
+        query = query.eq('submitted_by_rsn', rsn);
+    }
+
+    const { data: subs } = await query;
+    if (!subs?.length) {
+        document.getElementById('arc-modal-body').innerHTML = '<p style="color:var(--text-muted)">No approved submissions found.</p>';
+        return;
+    }
+
+    const cards = subs.map(s => {
+        const task = s.bingo_tasks || {};
+        const label = s.piece_label ? `<div style="font-size:0.82rem;color:var(--accent-gold);margin-bottom:6px;">🔹 ${s.piece_label}</div>` : '';
+        const imgs = (s.attachments || []).map(url =>
+            `<a href="${url}" target="_blank" rel="noopener"><img src="${url}" style="width:100%;border-radius:6px;margin-top:4px;display:block;" loading="lazy"></a>`
+        ).join('');
+        return `
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:8px;padding:0.75rem;margin-bottom:0.75rem;">
+            <div style="font-weight:700;font-size:0.88rem;color:var(--text-primary);margin-bottom:2px;">Day ${task.day_number}: ${task.title}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">${task.points} pts</div>
+            ${label}${imgs}
+        </div>`;
+    }).join('');
+
+    document.getElementById('arc-modal-body').innerHTML = cards;
+}
+
 // ── Team leaderboard ─────────────────────────────────────────
 
 async function loadLeaderboard() {
     const el = document.getElementById('leaderboard-content');
 
     const { data: teams } = await sb.rpc('bingo_leaderboard');
-
     if (!teams?.length) { el.innerHTML = '<p class="loading-msg">No data.</p>'; return; }
+
+    // Pre-fetch indiv cache in background so clicks feel instant
+    buildIndivCache();
 
     const rows = teams.map((t, i) => `
         <tr>
             <td class="rank-num">#${i + 1}</td>
-            <td><strong>${t.team_name}</strong></td>
+            <td>
+                <span class="arc-team-link" data-team-id="${t.team_id}" data-team-name="${t.team_name}"
+                    style="color:var(--accent-gold);cursor:pointer;text-decoration:underline;font-weight:700;">
+                    ${t.team_name}
+                </span>
+            </td>
             <td>${Math.round(t.total_points)}</td>
             <td>${t.tasks_completed ?? '—'}</td>
         </tr>`).join('');
 
     el.innerHTML = `
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem;">Click a team to see members and their points.</p>
         <table class="archive-table">
             <thead><tr><th>#</th><th>Team</th><th>Points</th><th>Tasks</th></tr></thead>
             <tbody>${rows}</tbody>
         </table>`;
+
+    el.querySelectorAll('.arc-team-link').forEach(link => {
+        link.addEventListener('click', () => openTeamModal(parseInt(link.dataset.teamId), link.dataset.teamName));
+    });
 }
 
 // ── All tasks ────────────────────────────────────────────────
